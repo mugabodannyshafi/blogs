@@ -10,15 +10,13 @@ export const databaseProviders = [
   {
     provide: 'SEQUELIZE',
     useFactory: async () => {
-        console.log('-->first: ', process.env.DATABASE_URL)
       const sequelize = new Sequelize(process.env.DATABASE_URL, {
-        dialect: 'postgres',
+        dialect: 'mysql',
       });
       sequelize.addModels([User, Post, Comment]);
 
       try {
         await sequelize.authenticate();
-        console.log('Connected to database');
       } catch (error) {
         console.error('Unable to connect to the database:', error);
       }

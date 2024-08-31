@@ -1,4 +1,3 @@
-// src/comments/comment.model.ts
 import {
   Column,
   Model,
@@ -10,6 +9,7 @@ import {
 } from 'sequelize-typescript';
 import { User } from 'src/users/entities/user.entity';
 import { Post } from 'src/posts/entities/post.entity';
+
 @Table
 export class Comment extends Model<Comment> {
   @Column({
@@ -19,21 +19,20 @@ export class Comment extends Model<Comment> {
   })
   public commentId: string;
 
-  @Column({
-    type: DataType.STRING,
-    allowNull: false,
-  })
+  @AllowNull(false)
+  @Column(DataType.STRING)
   public comment: string;
 
   @ForeignKey(() => User)
   @Column({
-    type: DataType.UUID,
+    type: DataType.UUID,  // Ensure this matches the userId data type in User model
     allowNull: false,
   })
   public userId: string;
 
   @ForeignKey(() => Post)
   @Column({
+    type: DataType.UUID,  // Explicitly define this as UUID to match postId in Post model
     allowNull: false,
   })
   public postId: string;

@@ -44,14 +44,6 @@ import {
   
     @HasMany(() => Comment)
     comments: Comment[];
-  
-    @BeforeCreate
-    static async hashPassword(user: User) {
-      if (user) {
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(user.getDataValue('password'), salt);
-        return user.setDataValue('password', hashedPassword);
-      }
-    }
+    
   }
   
