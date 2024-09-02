@@ -9,7 +9,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { DatabaseModule } from 'src/database/database.module'; // Correct import
 import { User } from 'src/users/entities/user.entity';
 import { SequelizeModule } from '@nestjs/sequelize';
-
+import { MailService } from 'src/mail/mail.service';
 @Module({
   imports: [
     SequelizeModule.forFeature([User]),
@@ -21,6 +21,6 @@ import { SequelizeModule } from '@nestjs/sequelize';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, LocalStrategy, JwtStrategy],
+  providers: [AuthService, LocalStrategy, JwtStrategy, MailService],
 })
 export class AuthModule {}

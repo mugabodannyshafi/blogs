@@ -1,18 +1,44 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { CommentsService } from './comments.service';
 import { Comment } from './entities/comment.entity';
+import { Post } from 'src/posts/entities/post.entity';
 import { getModelToken } from '@nestjs/sequelize';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { CreateCommentDto } from './dto/create-comment.dto';
 
-const testComment = {
-  comment: 'This is good!',
-  userId: 'user-id',
-  postId: 'post-id',
+const mockComment = {
+  commentId: '1',
+  comment: 'This is a comment',
+  userId: 'user1',
+  postId: 'post1',
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
+
+const mockPost = {
+  postId: 'post1',
+  title: 'Post Title',
+  content: 'Post Content',
+  author: 'Author',
+  userId: 'user1',
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
+
+const mockCommentModel = {
+  create: jest.fn().mockResolvedValue(mockComment),
+  findAll: jest.fn().mockResolvedValue([mockComment]),
+  findOne: jest.fn().mockResolvedValue(mockPost),
+};
+
+const mockPostModel = {
+  findOne: jest.fn().mockResolvedValue(mockPost),
 };
 
 describe('CommentsService', () => {
   let service: CommentsService;
-  let model: typeof Comment;
+  let commentModel: typeof Comment;
+  let postModel: typeof Post;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -20,17 +46,18 @@ describe('CommentsService', () => {
         CommentsService,
         {
           provide: getModelToken(Comment),
-          useValue: {
-            create: jest.fn().mockResolvedValue(testComment),
-            findAll: jest.fn().mockResolvedValue([testComment]), // default behavior
-            findOne: jest.fn().mockResolvedValue(testComment), // default behavior
-          },
+          useValue: mockCommentModel,
+        },
+        {
+          provide: getModelToken(Post),
+          useValue: mockPostModel,
         },
       ],
     }).compile();
 
     service = module.get<CommentsService>(CommentsService);
-    model = module.get<typeof Comment>(getModelToken(Comment));
+    commentModel = module.get<typeof Comment>(getModelToken(Comment));
+    postModel = module.get<typeof Post>(getModelToken(Post));
   });
 
   it('should be defined', () => {
@@ -39,53 +66,53 @@ describe('CommentsService', () => {
 
   describe('create', () => {
     it('should create a new comment', async () => {
-      const result = await service.create('user-id', 'This is good!', 'post-id');
-      expect(result).toEqual(testComment);
-      expect(model.create).toHaveBeenCalledWith({
-        comment: 'This is good!',
-        userId: 'user-id',
-        postId: 'post-id',
+      const result = await service.create('user1', 'This is a comment', 'post1');
+      expect(result).toEqual(mockComment);
+      expect(commentModel.create).toHaveBeenCalledWith({
+        comment: 'This is a comment',
+        userId: 'user1',
+        postId: 'post1',
       });
     });
 
-    it('should throw BadRequestException if userId is not provided', async () => {
-      await expect(service.create('', 'This is good!', 'post-id')).rejects.toThrow(
-        BadRequestException,
-      );
+    it('should throw BadRequestException if userId is missing', async () => {
+      await expect(service.create('', 'This is a comment', 'post1'))
+        .rejects
+        .toThrow(BadRequestException);
     });
 
-    it('should throw BadRequestException if postId is not provided', async () => {
-      await expect(service.create('user-id', 'This is good!', '')).rejects.toThrow(
-        BadRequestException,
-      );
+    it('should throw BadRequestException if postId is missing', async () => {
+      await expect(service.create('user1', 'This is a comment', ''))
+        .rejects
+        .toThrow(BadRequestException);
     });
 
-    it('should throw BadRequestException if comment is not provided', async () => {
-      await expect(service.create('user-id', '', 'post-id')).rejects.toThrow(
-        BadRequestException,
-      );
+    it('should throw BadRequestException if comment is missing', async () => {
+      await expect(service.create('user1', '', 'post1'))
+        .rejects
+        .toThrow(BadRequestException);
     });
 
     it('should throw NotFoundException if post is not found', async () => {
-      jest.spyOn(model, 'findOne').mockResolvedValueOnce(null); // Simulate post not found
-      await expect(service.create('user-id', 'This is good!', 'invalid-post-id')).rejects.toThrow(
-        NotFoundException,
-      );
+      postModel.findOne = jest.fn().mockResolvedValue(null);
+      await expect(service.create('user1', 'This is a comment', 'post1'))
+        .rejects
+        .toThrow(NotFoundException);
     });
   });
 
   describe('getComments', () => {
-    it('should return all comments for a post', async () => {
-      const result = await service.getComments('post-id');
-      expect(result).toEqual([testComment]);
-      expect(model.findAll).toHaveBeenCalledWith({ where: { postId: 'post-id' } });
+    it('should return comments for a post', async () => {
+      const result = await service.getComments('post1');
+      expect(result).toEqual([mockComment]);
+      expect(commentModel.findAll).toHaveBeenCalledWith({ where: { postId: 'post1' } });
     });
 
     it('should throw NotFoundException if no comments are found', async () => {
-      jest.spyOn(model, 'findAll').mockResolvedValueOnce([]); // Simulate no comments found
-      await expect(service.getComments('invalid-post-id')).rejects.toThrow(
-        NotFoundException,
-      );
+      commentModel.findAll = jest.fn().mockResolvedValue([]);
+      await expect(service.getComments('post1'))
+        .rejects
+        .toThrow(NotFoundException);
     });
   });
 });

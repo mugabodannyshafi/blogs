@@ -4,6 +4,7 @@ import { CommentsService } from './comments.service';
 import { JwtService } from '@nestjs/jwt';
 import { BadRequestException } from '@nestjs/common';
 import { Request } from 'express';
+import { CreateCommentDto } from './dto/create-comment.dto';
 
 const testComment = {
   comment: 'This is good!',
@@ -48,26 +49,27 @@ describe('CommentsController', () => {
   describe('create', () => {
     it('should create a comment', async () => {
       const request = { headers: { authorization: 'Bearer token' } } as Request;
-      const result = await controller.create(request, 'This is good!', 'post-id');
+      const createCommentDto = { comment: 'This is good!' };
+
+      const result = await controller.create(request, createCommentDto as CreateCommentDto, 'post-id');
 
       expect(result).toEqual(testComment);
-      expect(service.create).toHaveBeenCalledWith('user-id', 'This is good!', 'post-id');
-    });
-
-    it('should throw BadRequestException if comment is missing', async () => {
-      const request = { headers: { authorization: 'Bearer token' } } as Request;
-      await expect(controller.create(request, '', 'post-id')).rejects.toThrow(BadRequestException);
+      expect(service.create).toHaveBeenCalledWith('user-id', createCommentDto.comment, 'post-id');
     });
 
     it('should throw BadRequestException if token is missing', async () => {
-      const request = { headers: { } } as Request;
-      await expect(controller.create(request, 'This is good!', 'post-id')).rejects.toThrow(BadRequestException);
+      const request = { headers: {} } as Request;
+      const createCommentDto = { comment: 'This is good!' };
+
+      await expect(controller.create(request, createCommentDto as CreateCommentDto, 'post-id')).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException if token is invalid', async () => {
       jwtService.decode = jest.fn(() => null);
       const request = { headers: { authorization: 'Bearer token' } } as Request;
-      await expect(controller.create(request, 'This is good!', 'post-id')).rejects.toThrow(BadRequestException);
+      const createCommentDto = { comment: 'This is good!' };
+
+      await expect(controller.create(request, createCommentDto as CreateCommentDto, 'post-id')).rejects.toThrow(BadRequestException);
     });
   });
 

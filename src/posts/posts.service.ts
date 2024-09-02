@@ -15,7 +15,7 @@ export class PostsService {
 
   async create(createPostDto: CreatePostDto, userId: string): Promise<Post> {
     const { title, content, author } = createPostDto;
-    console.log('DTO', createPostDto);
+    // console.log('DTO', createPostDto);
 
     const post = await this.postModel.create({
       title,
