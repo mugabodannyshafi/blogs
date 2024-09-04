@@ -17,7 +17,7 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { ApiBadRequestResponse, ApiBearerAuth, ApiCreatedResponse, ApiNotFoundResponse, ApiOkResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
-import { Post as post } from './entities/post.entity';
+import { Post as post } from 'src/database/models/post.model';
 @ApiTags('Posts')
 @Controller('posts')
 export class PostsController {

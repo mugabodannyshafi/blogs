@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
-import { User } from 'src/users/entities/user.entity';
+import { User } from 'src/database/models/user.model';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import {
@@ -12,10 +12,8 @@ import { getModelToken } from '@nestjs/sequelize';
 import { UserDto } from './dto/user.dto';
 import { MailService } from 'src/mail/mail.service';
 
-// Import nanoid directly for mocking
 import { nanoid } from 'nanoid';
 
-// Mock nanoid
 jest.mock('nanoid', () => ({
   nanoid: jest.fn(() => 'resetToken'),
 }));
@@ -26,7 +24,7 @@ const testUser = {
   password: 'hashedPassword',
   username: 'MUGABO Shafi Danny',
   otp: 'resetToken',
-  otpExpiresAt: new Date(Date.now() + 1000 * 60 * 5), // Token valid for 5 minutes
+  otpExpiresAt: new Date(Date.now() + 1000 * 60 * 5),
 };
 
 describe('AuthService', () => {
@@ -85,6 +83,8 @@ describe('AuthService', () => {
         email: 'danny@gmail.com',
         username: 'MUGABO Shafi Danny',
         password: 'plainPassword',
+        password_confirmation: 'plainPassword',
+        profile: 'profile image'
       };
 
       const result = await service.registerUser(userDto);
@@ -98,6 +98,8 @@ describe('AuthService', () => {
         email: 'danny@gmail.com',
         username: 'MUGABO Shafi Danny',
         password: 'plainPassword',
+        password_confirmation: 'plainPassword',
+        profile: 'profile image'
       };
 
       await expect(service.registerUser(userDto)).rejects.toThrow(

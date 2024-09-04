@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/sequelize';
 import { PostsService } from './posts.service';
-import { Post } from './entities/post.entity';
+import { Post } from 'src/database/models/post.model';
 
 const testPost = {
   id: 'id',

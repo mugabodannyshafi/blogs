@@ -69,9 +69,11 @@ describe('AuthController', () => {
     it('should call AuthService registerUser', async () => {
       const signUpData: UserDto = {
         email: 'danny@gmail.com',
-        password: "asdfghjkl;'",
         username: 'MUGABO Shafi Danny',
-      };
+        password: 'plainPassword',
+        password_confirmation: 'plainPassword',
+        profile: 'profile image'
+      }
       await controller.register(signUpData);
       expect(service.registerUser).toHaveBeenCalledWith(signUpData);
     });

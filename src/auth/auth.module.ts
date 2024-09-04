@@ -6,15 +6,13 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { LocalStrategy } from './strategies/local.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
-import { DatabaseModule } from 'src/database/database.module'; // Correct import
-import { User } from 'src/users/entities/user.entity';
+import { User } from 'src/database/models/user.model';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { MailService } from 'src/mail/mail.service';
 @Module({
   imports: [
     SequelizeModule.forFeature([User]),
     PassportModule,
-    DatabaseModule,
     JwtModule.register({
       secret: 'abc.456',
       signOptions: { expiresIn: '1h' },

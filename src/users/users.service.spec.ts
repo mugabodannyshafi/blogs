@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from './users.service';
-import { User } from './entities/user.entity';
+import { User } from 'src/database/models/user.model';
 import { getModelToken } from '@nestjs/sequelize';
 
 const testUser = {

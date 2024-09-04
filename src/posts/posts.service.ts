@@ -5,23 +5,25 @@ import {
 } from '@nestjs/common';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
-import { Post } from './entities/post.entity';
-import { Comment } from 'src/comments/entities/comment.entity';
+import { Post } from 'src/database/models/post.model';
+import { Comment } from 'src/database/models/comment.model';
 import { InjectModel } from '@nestjs/sequelize';
+import { timestamp } from 'rxjs';
 
 @Injectable()
 export class PostsService {
   constructor(@InjectModel(Post) private readonly postModel: typeof Post) {}
 
   async create(createPostDto: CreatePostDto, userId: string): Promise<Post> {
-    const { title, content, author } = createPostDto;
+    const { title, content, author, image } = createPostDto;
     // console.log('DTO', createPostDto);
 
     const post = await this.postModel.create({
+      userId,
       title,
       content,
       author,
-      userId,
+      image
     });
 
     return post;
@@ -32,14 +34,15 @@ export class PostsService {
   }
 
   async findOne(postId: string): Promise<Post> {
-    if (!postId) {
-      throw new BadRequestException('Invalid postId');
-    }
+
+    console.log('first', postId)
 
     const post = await this.postModel.findOne({ where: { postId } });
-
-    if (!post) {
-      throw new NotFoundException(`Post with id ${postId} not found`);
+    if (post === null) {
+      throw new NotFoundException({
+        timestamp: new Date(),
+        message: 'Post not found',
+      });
     }
 
     return post;
@@ -48,8 +51,11 @@ export class PostsService {
   async comments(postId: string): Promise<Comment[]> {
     const post = await this.postModel.findOne({ where: { postId } });
 
-    if (!post) {
-      throw new NotFoundException('Post not found!');
+    if (post === null) {
+      throw new NotFoundException({
+        timestamp: new Date(),
+        message: 'Post not found',
+      });
     }
 
     return Comment.findAll({ where: { postId } });
@@ -62,8 +68,11 @@ export class PostsService {
 
     const post = await this.postModel.findOne({ where: { postId } });
 
-    if (!post) {
-      throw new NotFoundException(`Post with id ${postId} not found`);
+    if (post === null) {
+      throw new NotFoundException({
+        timestamp: new Date(),
+        message: 'Post not found',
+      });
     }
 
     post.title = updatePostDto.title ?? post.title;
@@ -81,8 +90,11 @@ export class PostsService {
   
     const post = await this.postModel.findOne({ where: { postId } });
   
-    if (!post) {
-      throw new NotFoundException(`Post with id ${postId} not found`);
+    if (post === null) {
+      throw new NotFoundException({
+        timestamp: new Date(),
+        message: 'Post not found',
+      });
     }
   
     await post.destroy();

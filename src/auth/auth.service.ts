@@ -7,7 +7,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UserDto } from './dto/user.dto';
-import { User } from 'src/users/entities/user.entity';
+import { User } from 'src/database/models/user.model';
 import { InjectModel } from '@nestjs/sequelize';
 import { nanoid } from 'nanoid';
 import { MailService } from 'src/mail/mail.service';
@@ -22,19 +22,31 @@ export class AuthService {
   ) {}
 
   async registerUser(signUpData: UserDto) {
-    const { email, username, password } = signUpData;
+    const { email, username, password, password_confirmation, profile } =
+      signUpData;
     const emailInUse = await this.UserModel.findOne({
       where: {
         email,
       },
     });
-    if (emailInUse) throw new BadRequestException('User already exists');
+    if (emailInUse)
+      throw new BadRequestException({
+        timestamp: new Date(),
+        message: 'User already exists',
+      });
+      if (password !== password_confirmation) throw new BadRequestException({
+        timestamp: new Date(),
+        message: 'Passwords do not match',
+      })
 
     const hashedPwd = await bcrypt.hash(password, 10);
+    const hashedConfirmPassword = await bcrypt.hash(password_confirmation, 10);
     const user = await this.UserModel.create({
       email,
       username,
       password: hashedPwd,
+      password_confirmation: hashedConfirmPassword,
+      profile,
     });
     return user;
   }
@@ -45,7 +57,8 @@ export class AuthService {
         email,
       },
     });
-    if (!user) throw new UnauthorizedException('Invalid credentials');
+
+    if (user === null) throw new UnauthorizedException('Invalid credentials');
     const passwordMatch = await bcrypt.compare(password, user.password);
     if (!passwordMatch) throw new UnauthorizedException('Invalid credentials');
 
@@ -60,7 +73,7 @@ export class AuthService {
     const userTest = await this.UserModel.findOne({ where: { userId } });
     const user = userTest.dataValues;
 
-    if (!user) throw new NotFoundException('User Not Found');
+    if (user === null) throw new NotFoundException('User Not Found');
 
     const passwordMatch = await bcrypt.compare(oldPassword, user.password);
     if (!passwordMatch) throw new BadRequestException('Invalid old password');
@@ -73,7 +86,7 @@ export class AuthService {
 
   async forgotPassword(email: string) {
     const user = await this.UserModel.findOne({ where: { email: email } });
-    if (!user) throw new NotFoundException('User Not Found');
+    if (user === null) throw new NotFoundException('User Not Found');
     if (user) {
       const resetToken = nanoid(64);
       const otpExpiresAt = new Date();
@@ -97,10 +110,9 @@ export class AuthService {
       },
     });
 
-
     if (token) {
-      token.otp = null
-      token.otpExpiresAt = null
+      token.otp = null;
+      token.otpExpiresAt = null;
       await token.save();
 
       const user = await this.UserModel.findByPk(token.userId);

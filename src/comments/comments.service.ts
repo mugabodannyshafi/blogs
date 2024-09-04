@@ -3,8 +3,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Comment } from './entities/comment.entity';
-import { Post } from 'src/posts/entities/post.entity';
+import { User } from 'src/database/models/user.model';
+import { Comment } from 'src/database/models/comment.model';
+import { Post } from 'src/database/models/post.model';
 import { InjectModel } from '@nestjs/sequelize';
 import { CreateCommentDto } from './dto/create-comment.dto';
 
@@ -28,8 +29,11 @@ export class CommentsService {
 
     const post = await this.postModel.findOne({ where: { postId: postId } });
 
-    if (!post) {
-      throw new NotFoundException('Post Not Found');
+    if (post === null) {
+      throw new NotFoundException({
+        timestamp: new Date(),
+        message: 'Post not found',
+      });
     }
 
     const newComment = await this.commentModel.create({

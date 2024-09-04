@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
-import { User } from './entities/user.entity';
+import { User } from 'src/database/models/user.model';
 
 const testUser = {
   email: 'danny@gmail.com',

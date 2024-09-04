@@ -3,8 +3,8 @@ import { CommentsService } from './comments.service';
 import { CommentsController } from './comments.controller';
 import { JwtService } from '@nestjs/jwt';
 import { SequelizeModule } from '@nestjs/sequelize';
-import { Comment } from './entities/comment.entity';
-import { Post } from 'src/posts/entities/post.entity';
+import { Comment } from 'src/database/models/comment.model';
+import { Post } from 'src/database/models/post.model';
 
 @Module({
   imports: [SequelizeModule.forFeature([Comment, Post]),],

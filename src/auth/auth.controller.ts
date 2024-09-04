@@ -29,7 +29,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { User } from 'src/users/entities/user.entity';
+import { User } from 'src/database/models/user.model';
 import { ForgotResponse } from './dto/forgot-password-response.dto';
 @ApiTags('User')
 @Controller('auth')

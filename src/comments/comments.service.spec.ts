@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { CommentsService } from './comments.service';
-import { Comment } from './entities/comment.entity';
-import { Post } from 'src/posts/entities/post.entity';
+import { Comment } from 'src/database/models/comment.model';
+import { Post } from 'src/database/models/post.model';
 import { getModelToken } from '@nestjs/sequelize';
 import { CreateCommentDto } from './dto/create-comment.dto';
 

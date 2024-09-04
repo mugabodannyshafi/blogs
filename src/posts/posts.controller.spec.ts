@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PostsController } from './posts.controller';
 import { PostsService } from './posts.service';
-import { Post } from './entities/post.entity';
+import { Post } from 'src/database/models/post.model';
 import { JwtService } from '@nestjs/jwt';
-import { User } from 'src/users/entities/user.entity';
+import { User } from 'src/database/models/user.model';
 
 const testPost = {
   id: 'id',

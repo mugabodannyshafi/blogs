@@ -3,7 +3,7 @@ import { PostsService } from './posts.service';
 import { PostsController } from './posts.controller';
 import { JwtService } from '@nestjs/jwt';
 import { SequelizeModule } from '@nestjs/sequelize';
-import { Post } from './entities/post.entity';
+import { Post } from 'src/database/models/post.model';
 
 @Module({
   imports: [SequelizeModule.forFeature([Post])],

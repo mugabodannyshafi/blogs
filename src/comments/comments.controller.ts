@@ -15,7 +15,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ApiBadRequestResponse, ApiBearerAuth, ApiCreatedResponse, ApiInternalServerErrorResponse, ApiTags } from '@nestjs/swagger';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
-import { Comment } from './entities/comment.entity';
+import { Comment } from 'src/database/models/comment.model';
 @ApiTags('Comments')
 @Controller('comments')
 export class CommentsController {

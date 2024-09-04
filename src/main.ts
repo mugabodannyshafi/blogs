@@ -11,14 +11,14 @@ async function bootstrap() {
   
   // Set up global validation pipe
   app.useGlobalPipes(new ValidationPipe({
-    whitelist: true,  // Strips out any properties not defined in the DTO
-    forbidNonWhitelisted: true,  // Throws an error if any non-DTO properties are present
-    transform: true,  // Automatically transforms payloads to be objects typed according to their DTO classes
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    transform: true,
   }));
 
   const config = new DocumentBuilder()
     .setTitle('Blogs APIs')
-    .setDescription('Blogs management APIs')
+    .setDescription('APIs for managing blogs and user profiles')
     .setVersion('1.0')
     .addTag('Blogs')
     .addBearerAuth({
@@ -26,6 +26,15 @@ async function bootstrap() {
       scheme: 'bearer',
       bearerFormat: 'JWT',
     })
+    .addBearerAuth() // Add for JWT authentication
+    .addBearerAuth({
+      type: 'http',
+      scheme: 'bearer',
+      bearerFormat: 'JWT',
+      name: 'Authorization',
+      in: 'header'
+    }, 'access-token')
+    .addServer('http://localhost:3002') // Adding the server URL
     .build();
   
   const document = SwaggerModule.createDocument(app, config);
