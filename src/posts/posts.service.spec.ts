@@ -2,6 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/sequelize';
 import { PostsService } from './posts.service';
 import { Post } from 'src/database/models/post.model';
+import { NotFoundException } from '@nestjs/common';
+import { timestamp } from 'rxjs';
 
 const testPost = {
   id: 'id',
@@ -18,7 +20,7 @@ const updatedPost = {
 };
 
 const testComments = [
-  { id: 'c1', postId: 'id', comment: 'Great post!', },
+  { id: 'c1', postId: 'id', comment: 'Great post!' },
   { id: 'c2', postId: 'id', comment: 'Very informative.' },
 ];
 
@@ -78,6 +80,7 @@ describe('PostsService', () => {
       content:
         "Regular exercise is crucial for maintaining overall health and well-being. Engaging in physical activity daily can help improve cardiovascular health, increase muscle strength, and boost mental clarity. Whether it's a brisk walk, a run, or a yoga session, finding an activity you enjoy can make exercise a sustainable part of your routine. Additionally, exercise is known to release endorphins, which can enhance mood and reduce stress levels. Make time for daily exercise and reap the numerous benefits it offers for both body and mind.",
       author: 'MUGABO Shafi Danny',
+      image: 'image example',
     };
     expect(await service.create(createPostDto, 'userId')).toEqual(testPost);
   });
@@ -160,11 +163,15 @@ describe('PostsService', () => {
   it('should throw an error if post is not found', async () => {
     const postId = 'non-existing-id';
     const findOneSpy = jest.spyOn(model, 'findOne').mockResolvedValue(null);
-
+  
     await expect(service.remove(postId)).rejects.toThrow(
-      `Post with id ${postId} not found`,
+      new NotFoundException({
+        timestamp: new Date(),
+        message: 'Post not found',
+      }),
     );
-
+  
     expect(findOneSpy).toBeCalledWith({ where: { postId } });
   });
+  
 });

@@ -78,6 +78,7 @@ describe('PostsController', () => {
       content:
         "Regular exercise is crucial for maintaining overall health and well-being. Engaging in physical activity daily can help improve cardiovascular health, increase muscle strength, and boost mental clarity. Whether it's a brisk walk, a run, or a yoga session, finding an activity you enjoy can make exercise a sustainable part of your routine. Additionally, exercise is known to release endorphins, which can enhance mood and reduce stress levels. Make time for daily exercise and reap the numerous benefits it offers for both body and mind.",
       author: 'MUGABO Shafi Danny',
+      image: "image example"
     };
     expect(await service.create(createPostDto, 'userId')).toEqual(testPost);
   });
