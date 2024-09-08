@@ -8,6 +8,7 @@ import { Comment } from 'src/database/models/comment.model';
 import { Post } from 'src/database/models/post.model';
 import { InjectModel } from '@nestjs/sequelize';
 import { CreateCommentDto } from './dto/create-comment.dto';
+import { timestamp } from 'rxjs';
 
 @Injectable()
 export class CommentsService {
@@ -16,7 +17,6 @@ export class CommentsService {
     @InjectModel(Post) private readonly postModel: typeof Post,
   ) {}
   async create(userId: string, comment: string, postId: string) {
-    console.log('-->userId', userId)
     if (!userId) {
       throw new BadRequestException('User ID is required');
     }
@@ -46,9 +46,17 @@ export class CommentsService {
   }
 
   async getComments(postId: string) {
+    const post = await this.postModel.findOne({ where: { postId } });
+    if (post === null)
+      throw new NotFoundException({
+        timestamp: new Date(),
+        message: 'Post not found',
+      });
     const comments = await this.commentModel.findAll({ where: { postId } });
-    if (comments.length === 0)
-      throw new NotFoundException('Comments Not Found');
+    if (comments.length <= 0) throw new NotFoundException({
+      timestamp:  new Date(),
+      message: 'No comments found',
+    })
     return comments;
   }
 }

@@ -21,11 +21,14 @@ jest.mock('nanoid', () => ({
 const testUser = {
   userId: 'id',
   email: 'danny@gmail.com',
-  password: 'hashedPassword',
   username: 'MUGABO Shafi Danny',
+  password: 'hashedPassword',
+  password_confirmation: 'hashedPassword',
+  profile: 'profile',
   otp: 'resetToken',
   otpExpiresAt: new Date(Date.now() + 1000 * 60 * 5),
 };
+const imageUrl = 'imageUrl';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -84,11 +87,28 @@ describe('AuthService', () => {
         username: 'MUGABO Shafi Danny',
         password: 'plainPassword',
         password_confirmation: 'plainPassword',
-        profile: 'profile image'
+        profile: imageUrl,
       };
 
-      const result = await service.registerUser(userDto);
+      const result = await service.registerUser(userDto, imageUrl);
       expect(result).toEqual(testUser);
+    });
+
+    it('should throw BadRequestException if password is not equal to password_confirmation', async () => {
+      const userDto: UserDto = {
+        email: 'danny@gmail.com',
+        username: 'MUGABO Shafi Danny',
+        password: 'plainPassword',
+        password_confirmation: 'differentPassword',
+        profile: imageUrl,
+      };
+
+      await expect(service.registerUser(userDto, imageUrl)).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.registerUser(userDto, imageUrl)).rejects.toThrow(
+        'Passwords do not match',
+      );
     });
 
     it('should throw BadRequestException if email is already in use', async () => {
@@ -99,27 +119,25 @@ describe('AuthService', () => {
         username: 'MUGABO Shafi Danny',
         password: 'plainPassword',
         password_confirmation: 'plainPassword',
-        profile: 'profile image'
+        profile: 'profile image',
       };
 
-      await expect(service.registerUser(userDto)).rejects.toThrow(
+      await expect(service.registerUser(userDto, imageUrl)).rejects.toThrow(
         BadRequestException,
       );
     });
   });
 
   describe('validateUser', () => {
-    it('should validate user and return a token', async () => {
+    it('should validate user and return a user', async () => {
       jest.spyOn(model, 'findOne').mockResolvedValue(testUser as any);
-      jest.spyOn(jwtService, 'sign').mockReturnValue('token');
 
       const result = await service.validateUser(
         'danny@gmail.com',
         'plainPassword',
       );
-      expect(result).toHaveProperty('user');
-      expect(result).toHaveProperty('token');
-      expect(result.token).toEqual('token');
+
+      expect(result).toHaveProperty('email', 'danny@gmail.com');
     });
 
     it('should throw UnauthorizedException if user is not found', async () => {
@@ -170,7 +188,6 @@ describe('AuthService', () => {
   });
 
   describe('resetPassword', () => {
-
     it('should throw BadRequestException if token is invalid or expired', async () => {
       jest.spyOn(model, 'findOne').mockResolvedValue(null); // No token found
 

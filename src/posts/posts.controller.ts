@@ -9,28 +9,47 @@ import {
   UseGuards,
   Req,
   Put,
+  UseInterceptors,
+  UploadedFile,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import { PostsService } from './posts.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
-import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
-import { ApiBadRequestResponse, ApiBearerAuth, ApiCreatedResponse, ApiNotFoundResponse, ApiOkResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
+import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiCookieAuth,
+  ApiCreatedResponse,
+  ApiForbiddenResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
 import { Post as post } from 'src/database/models/post.model';
+import { AuthenticatedGuard } from 'src/auth/guards/local.guard';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
+
 @ApiTags('Posts')
 @Controller('posts')
 export class PostsController {
   constructor(
     private readonly postsService: PostsService,
-    private readonly jwtService: JwtService,
+    private readonly cloudinaryService: CloudinaryService,
   ) {}
 
-  @Post('')
-  @ApiBearerAuth()
+  @UseGuards(AuthenticatedGuard)
+  @Post('create-post')
   @ApiCreatedResponse({
     description: 'The post has been successfully created.',
-    type: post
+    type: CreatePostDto,
   })
   @ApiUnauthorizedResponse({
     description: 'Unauthorized',
@@ -38,16 +57,46 @@ export class PostsController {
   @ApiBadRequestResponse({
     description: 'Invalid request',
   })
-  @UseGuards(JwtAuthGuard)
-  create(
+  @ApiForbiddenResponse({
+    description: 'forbidden resource',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', example: 'Rwanda' },
+        content: { type: 'string', example: 'Rwanda the heart of africa' },
+        author: { type: 'string', example: 'MUGABO Shafi Danny' },
+        image: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @UseInterceptors(FileInterceptor('image'))
+  async create(
     @Req() request: Request,
     @Body() createPostDto: CreatePostDto,
+    @UploadedFile() image: Express.Multer.File,
   ): Promise<any> {
-    const token = request.headers.authorization.replace('Bearer ', '');
-    const json = this.jwtService.decode(token, { json: true }) as {
-      userId: string;
-    };
-    return this.postsService.create(createPostDto, json.userId);
+    try {
+      let imageUrl = null;
+
+      if (image) {
+        const uploadedImage = await this.cloudinaryService.uploadImage(image);
+        imageUrl = uploadedImage.secure_url;
+      }
+
+      return await this.postsService.create(
+        createPostDto,
+        request.session.userId,
+        imageUrl,
+      );
+    } catch (error) {
+      throw new HttpException('Post creation failed', HttpStatus.BAD_REQUEST);
+    }
   }
 
   @ApiOkResponse({
@@ -81,10 +130,10 @@ export class PostsController {
     return this.postsService.findOne(id);
   }
 
-  @ApiBearerAuth()
+  @UseGuards(AuthenticatedGuard)
   @ApiOkResponse({
     description: 'The post has been successfully updated.',
-    type: post
+    type: UpdatePostDto, // Adjust according to the Post entity or response type
   })
   @ApiNotFoundResponse({
     description: 'Post not found',
@@ -93,15 +142,44 @@ export class PostsController {
     description: 'Invalid request',
   })
   @Patch(':id')
-  @UseGuards(JwtAuthGuard)
-  update(@Param('id') postId: string, @Body() updatePostDto: UpdatePostDto) {
-    return this.postsService.update(postId, updatePostDto);
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', example: 'Rwanda' },
+        content: { type: 'string', example: 'Rwanda the heart of africa' },
+        author: { type: 'string', example: 'MUGABO Shafi Danny' },
+        image: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @UseInterceptors(FileInterceptor('image'))
+  async update(
+    @Param('id') postId: string,
+    @Body() updatePostDto: UpdatePostDto,
+    @UploadedFile() image?: Express.Multer.File,
+  ) {
+    try {
+      let imageUrl = null;
+
+      if (image) {
+        const uploadedImage = await this.cloudinaryService.uploadImage(image);
+        imageUrl = uploadedImage.secure_url;
+      }
+      return await this.postsService.update(postId, updatePostDto, imageUrl);
+    } catch (error) {
+      throw new HttpException('Post update failed', HttpStatus.BAD_REQUEST);
+    }
   }
 
-  @ApiBearerAuth()
+  @UseGuards(AuthenticatedGuard)
   @ApiOkResponse({
     description: 'The post has been successfully updated.',
-    type: post
+    type: post,
   })
   @ApiNotFoundResponse({
     description: 'Post not found',
@@ -110,12 +188,14 @@ export class PostsController {
     description: 'Invalid request',
   })
   @Put(':id')
-  @UseGuards(JwtAuthGuard)
-  updateOrCreate(@Param('id') postId: string, @Body() updatePostDto: UpdatePostDto) {
+  updateOrCreate(
+    @Param('id') postId: string,
+    @Body() updatePostDto: UpdatePostDto,
+  ) {
     return this.postsService.update(postId, updatePostDto);
   }
 
-  @ApiBearerAuth()
+  @UseGuards(AuthenticatedGuard)
   @ApiNotFoundResponse({
     description: 'Post not found',
   })
@@ -126,7 +206,6 @@ export class PostsController {
     description: 'Invalid request',
   })
   @Delete(':id')
-  @UseGuards(JwtAuthGuard)
   remove(@Param('id') id: string) {
     return this.postsService.remove(id);
   }

@@ -4,7 +4,6 @@ import {
   UnauthorizedException,
   NotFoundException,
 } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UserDto } from './dto/user.dto';
 import { User } from 'src/database/models/user.model';
@@ -16,12 +15,11 @@ import { Op } from 'sequelize';
 @Injectable()
 export class AuthService {
   constructor(
-    private jwtService: JwtService,
     private mailService: MailService,
     @InjectModel(User) private readonly UserModel: typeof User,
   ) {}
 
-  async registerUser(signUpData: UserDto) {
+  async registerUser(signUpData: UserDto, imageUrl: string) {
     const { email, username, password, password_confirmation, profile } =
       signUpData;
     const emailInUse = await this.UserModel.findOne({
@@ -46,43 +44,25 @@ export class AuthService {
       username,
       password: hashedPwd,
       password_confirmation: hashedConfirmPassword,
-      profile,
+      profile: imageUrl,
     });
     return user;
   }
 
   async validateUser(email: string, password: string): Promise<any> {
+
     const user = await this.UserModel.findOne({
       where: {
         email,
       },
     });
-
     if (user === null) throw new UnauthorizedException('Invalid credentials');
     const passwordMatch = await bcrypt.compare(password, user.password);
     if (!passwordMatch) throw new UnauthorizedException('Invalid credentials');
 
-    const payload = { userId: user.userId };
-    return {
-      user: user,
-      token: this.jwtService.sign(payload),
-    };
+    return user
   }
 
-  async changePassword(userId, oldPassword: string, newPassword: string) {
-    const userTest = await this.UserModel.findOne({ where: { userId } });
-    const user = userTest.dataValues;
-
-    if (user === null) throw new NotFoundException('User Not Found');
-
-    const passwordMatch = await bcrypt.compare(oldPassword, user.password);
-    if (!passwordMatch) throw new BadRequestException('Invalid old password');
-
-    const hashedPwd = await bcrypt.hash(newPassword, 10);
-    await this.UserModel.update({ password: hashedPwd }, { where: { userId } });
-
-    return { message: 'password changed successfully' };
-  }
 
   async forgotPassword(email: string) {
     const user = await this.UserModel.findOne({ where: { email: email } });

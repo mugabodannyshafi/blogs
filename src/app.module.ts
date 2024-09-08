@@ -10,6 +10,7 @@ import { User } from './database/models/user.model';
 import { Comment } from './database/models/comment.model';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { DatabaseModule } from './database/database.module';
+
 @Module({
   imports: [SequelizeModule.forRoot({
     dialect: 'mysql',

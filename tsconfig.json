@@ -20,5 +20,7 @@
     "paths": {
       "src/*": ["src/*"]
     }
-  }
+  },
+  "include": ["src/**/*", "types/express-session.d.ts"], // Add or modify this
+  "exclude": ["node_modules"]
 }

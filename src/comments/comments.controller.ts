@@ -14,8 +14,8 @@ import { Request } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { ApiBadRequestResponse, ApiBearerAuth, ApiCreatedResponse, ApiInternalServerErrorResponse, ApiTags } from '@nestjs/swagger';
 import { CreateCommentDto } from './dto/create-comment.dto';
-import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 import { Comment } from 'src/database/models/comment.model';
+import { AuthenticatedGuard } from 'src/auth/guards/local.guard';
 @ApiTags('Comments')
 @Controller('comments')
 export class CommentsController {
@@ -24,8 +24,8 @@ export class CommentsController {
     private readonly jwtService: JwtService,
   ) {}
 
+  @UseGuards(AuthenticatedGuard)
   @Post(':id')
-  @ApiBearerAuth()
   @ApiCreatedResponse({
     description: 'Comment created',
     type: Comment
@@ -36,37 +36,18 @@ export class CommentsController {
   @ApiInternalServerErrorResponse({
     description: 'Internal server error'
   })
-  @UseGuards(JwtAuthGuard)
   async create(
     @Req() request: Request,
     @Body() createCommentDto: CreateCommentDto,
     @Param('id') postId: string,
   ): Promise<any> {
-    console.log(createCommentDto)
     if (!createCommentDto) {
       throw new BadRequestException('Comment is required');
     }
-
-    const token = request.headers.authorization?.replace('Bearer ', '');
-    if (!token) {
-      throw new BadRequestException('token is missing');
-    }
-
-    const decodedToken = this.jwtService.decode(token);
-    if (
-      !decodedToken ||
-      typeof decodedToken === 'string' ||
-      !('userId' in decodedToken)
-    ) {
-      throw new BadRequestException('Invalid token');
-    }
-
-    const { userId } = decodedToken as { userId: string };
-
-    return this.commentsService.create(userId, createCommentDto.comment, postId);
+    return this.commentsService.create(request.session.userId, createCommentDto.comment, postId);
   }
 
-  @Get()
+  @Get('')
   getComments(@Query('postId') postId: string) {
     return this.commentsService.getComments(postId);
   }

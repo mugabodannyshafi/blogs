@@ -15,7 +15,6 @@ const testComment = {
 describe('CommentsController', () => {
   let controller: CommentsController;
   let service: CommentsService;
-  let jwtService: JwtService;
 
   beforeEach(async () => {
     const moduleRef: TestingModule = await Test.createTestingModule({
@@ -39,7 +38,6 @@ describe('CommentsController', () => {
 
     controller = moduleRef.get<CommentsController>(CommentsController);
     service = moduleRef.get<CommentsService>(CommentsService);
-    jwtService = moduleRef.get<JwtService>(JwtService);
   });
 
   it('should be defined', () => {
@@ -48,28 +46,37 @@ describe('CommentsController', () => {
 
   describe('create', () => {
     it('should create a comment', async () => {
-      const request = { headers: { authorization: 'Bearer token' } } as Request;
+      const request = {
+        session: {
+          userId: 'user-id',
+        },
+      } as unknown as Request;
       const createCommentDto = { comment: 'This is good!' };
 
-      const result = await controller.create(request, createCommentDto as CreateCommentDto, 'post-id');
+      const result = await controller.create(
+        request,
+        createCommentDto as CreateCommentDto,
+        'post-id',
+      );
 
       expect(result).toEqual(testComment);
-      expect(service.create).toHaveBeenCalledWith('user-id', createCommentDto.comment, 'post-id');
+      expect(service.create).toHaveBeenCalledWith(
+        'user-id',
+        createCommentDto.comment,
+        'post-id',
+      );
     });
 
-    it('should throw BadRequestException if token is missing', async () => {
-      const request = { headers: {} } as Request;
-      const createCommentDto = { comment: 'This is good!' };
+    it('should throw BadRequestException if createCommentDto is not provided', async () => {
+      const request = {
+        session: {
+          userId: 'user-id',
+        },
+      } as unknown as Request;
 
-      await expect(controller.create(request, createCommentDto as CreateCommentDto, 'post-id')).rejects.toThrow(BadRequestException);
-    });
-
-    it('should throw BadRequestException if token is invalid', async () => {
-      jwtService.decode = jest.fn(() => null);
-      const request = { headers: { authorization: 'Bearer token' } } as Request;
-      const createCommentDto = { comment: 'This is good!' };
-
-      await expect(controller.create(request, createCommentDto as CreateCommentDto, 'post-id')).rejects.toThrow(BadRequestException);
+      await expect(
+        controller.create(request, null as any, 'post-id'),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 

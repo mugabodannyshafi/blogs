@@ -1,153 +1,182 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { AuthController } from './auth.controller'; 
+import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { LocalGuard } from './guards/local.guard';
-import { JwtAuthGuard } from './guards/jwt.guard';
-import { JwtService, JwtModule } from '@nestjs/jwt';
+import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
 import { UserDto } from './dto/user.dto';
-import { AuthPayloadDto } from './dto/auth.dto'; 
-import { ChangePasswordDto } from './dto/ChangePassword.dto';
+import { AuthPayloadDto } from './dto/auth.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
-import { ResetPasswordDto } from './dto/reset-password.dto';
-import { HttpException, InternalServerErrorException } from '@nestjs/common';
+import { ResetPasswordDto } from './dto/reset.password.dto';
+import { UnauthorizedException, HttpException, HttpStatus } from '@nestjs/common';
+import { LocalGuard } from './guards/local.guard';
+import { Request } from 'express';
+import { Readable } from 'stream';
 
+const mockStream = new Readable({
+  read() {
+    this.push(null); // No data to push, end the stream
+  }
+});
 describe('AuthController', () => {
-  let controller: AuthController;
-  let service: AuthService;
-  let jwtService: JwtService;
+  let authController: AuthController;
+  let authService: AuthService;
+  let cloudinaryService: CloudinaryService;
+
+  const mockAuthService = {
+    registerUser: jest.fn(),
+    validateUser: jest.fn(),
+    forgotPassword: jest.fn(),
+    resetPassword: jest.fn(),
+    logout: jest.fn(),
+  };
+
+  const mockCloudinaryService = {
+    uploadImage: jest.fn(),
+  };
+
+  const mockUser = {
+    userId: 'user123',
+    email: 'test@example.com',
+    password: 'password123',
+  };
+
+  const mockSession = {
+    userId: 'user123',
+    authenticated: true,
+  };
 
   beforeEach(async () => {
-    const mockAuthService = {
-      registerUser: jest.fn(),
-      validateUser: jest.fn(),
-      changePassword: jest.fn(),
-      forgotPassword: jest.fn(),
-      resetPassword: jest.fn(),
-      logout: jest.fn(),
-    };
-
-    const mockJwtService = {
-      decode: jest.fn(),
-    };
-
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
       providers: [
-        {
-          provide: AuthService,
-          useValue: mockAuthService,
-        },
-        {
-          provide: JwtService,
-          useValue: mockJwtService,
-        },
+        { provide: AuthService, useValue: mockAuthService },
+        { provide: CloudinaryService, useValue: mockCloudinaryService },
       ],
-      imports: [
-        JwtModule.register({ secret: 'test-secret' }),
-      ],
-    })
-      .overrideGuard(LocalGuard)
-      .useValue({
-        canActivate: jest.fn(() => true),
-      })
-      .overrideGuard(JwtAuthGuard)
-      .useValue({
-        canActivate: jest.fn(() => true),
-      })
-      .compile();
+    }).compile();
 
-    controller = module.get<AuthController>(AuthController);
-    service = module.get<AuthService>(AuthService);
-    jwtService = module.get<JwtService>(JwtService);
-  });
-
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+    authController = module.get<AuthController>(AuthController);
+    authService = module.get<AuthService>(AuthService);
+    cloudinaryService = module.get<CloudinaryService>(CloudinaryService);
   });
 
   describe('register', () => {
-    it('should call AuthService registerUser', async () => {
-      const signUpData: UserDto = {
-        email: 'danny@gmail.com',
-        username: 'MUGABO Shafi Danny',
-        password: 'plainPassword',
-        password_confirmation: 'plainPassword',
-        profile: 'profile image'
-      }
-      await controller.register(signUpData);
-      expect(service.registerUser).toHaveBeenCalledWith(signUpData);
+    it('should register a new user successfully', async () => {
+      const userDto: UserDto = {
+        email: 'test@example.com',
+        username: 'Test User',
+        password: 'password123',
+        password_confirmation: 'password123',
+      };
+      const mockImage: Express.Multer.File = {
+        fieldname: 'profile',
+        originalname: 'test-image.jpg',
+        encoding: '7bit',
+        mimetype: 'image/jpeg',
+        size: 1024,
+        buffer: Buffer.from('imageBuffer'),
+        stream: mockStream,
+        destination: '',
+        filename: '',
+        path: '',
+      };
+      
+      const uploadedImage = { secure_url: 'http://cloudinary.com/image.jpg' };
+      mockCloudinaryService.uploadImage.mockResolvedValue(uploadedImage);
+      mockAuthService.registerUser.mockResolvedValue(mockUser);
+
+      const result = await authController.register(userDto, mockImage);
+
+      expect(result).toEqual(mockUser);
+      expect(cloudinaryService.uploadImage).toHaveBeenCalledWith(mockImage);
+      expect(authService.registerUser).toHaveBeenCalledWith(userDto, uploadedImage.secure_url);
     });
+
   });
 
   describe('login', () => {
-    it('should return user on successful login', async () => {
+    it('should login a user and set session', async () => {
       const authPayloadDto: AuthPayloadDto = {
-        email: 'test@test.com',
-        password: 'password',
+        email: 'test@example.com',
+        password: 'password123',
       };
-      const user = { id: 1, email: 'test@test.com' }; // Mock user data
-      service.validateUser = jest.fn().mockReturnValue(user);
+      const mockRequest = { session: {}, headers: {} } as Request;
+      mockAuthService.validateUser.mockResolvedValue(mockUser);
 
-      const result = await controller.login(authPayloadDto);
-      expect(result).toEqual(user);
+      const result = await authController.login(mockRequest, authPayloadDto);
+
+      expect(result).toEqual({
+        message: 'Login successful',
+        userId: mockUser.userId,
+      });
+      expect(mockRequest.session.userId).toEqual(mockUser.userId);
+      expect(authService.validateUser).toHaveBeenCalledWith(
+        authPayloadDto.email,
+        authPayloadDto.password,
+      );
     });
 
-    it('should throw an error if credentials are invalid', async () => {
+    it('should throw UnauthorizedException if credentials are invalid', async () => {
+      mockAuthService.validateUser.mockResolvedValue(null);
       const authPayloadDto: AuthPayloadDto = {
-        email: 'test@test.com',
+        email: 'invalid@example.com',
         password: 'wrongpassword',
       };
+      const mockRequest = { session: {} } as Request;
 
-      service.validateUser = jest.fn().mockReturnValue(null);
-
-      try {
-        await controller.login(authPayloadDto);
-      } catch (error) {
-        expect(error).toBeInstanceOf(HttpException);
-        expect(error.message).toBe('Invalid credentials');
-        expect(error.getStatus()).toBe(401);
-      }
+      await expect(authController.login(mockRequest, authPayloadDto)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
   });
 
+  describe('getAuthSession', () => {
+    it('should return the session object', async () => {
+      const session = { authenticated: true };
 
+      const result = await authController.getAuthSession(session);
+
+      expect(result).toEqual(session);
+    });
+  });
 
   describe('forgotPassword', () => {
-    it('should send a password reset email', async () => {
-      const forgotPasswordDto: ForgotPasswordDto = {
-        email: 'test@test.com',
-      };
+    it('should call forgotPassword and send reset link', async () => {
+      const forgotPasswordDto: ForgotPasswordDto = { email: 'test@example.com' };
+      mockAuthService.forgotPassword.mockResolvedValue('Reset link sent');
 
-      await controller.forgotPassword(forgotPasswordDto);
+      const result = await authController.forgotPassword(forgotPasswordDto);
 
-      expect(service.forgotPassword).toHaveBeenCalledWith('test@test.com');
+      expect(result).toBe('Reset link sent');
+      expect(authService.forgotPassword).toHaveBeenCalledWith(forgotPasswordDto.email);
     });
   });
 
   describe('resetPassword', () => {
-    it('should reset the user password', async () => {
+    it('should call resetPassword with new password and reset token', async () => {
       const resetPasswordDto: ResetPasswordDto = {
-        newPassword: 'newPass456',
-        resetToken: 'validResetToken',
+        newPassword: 'newpassword123',
+        resetToken: 'resetToken123',
       };
+      mockAuthService.resetPassword.mockResolvedValue('Password changed');
 
-      await controller.resetPassword(resetPasswordDto);
+      const result = await authController.resetPassword(resetPasswordDto);
 
-      expect(service.resetPassword).toHaveBeenCalledWith('newPass456', 'validResetToken');
+      expect(result).toBe('Password changed');
+      expect(authService.resetPassword).toHaveBeenCalledWith(
+        resetPasswordDto.newPassword,
+        resetPasswordDto.resetToken,
+      );
     });
   });
 
   describe('logout', () => {
-    it('should logout the user', async () => {
-      const request = {
-        headers: {
-          authorization: 'Bearer someValidToken',
-        },
-      } as any;
+    it('should logout a user', async () => {
+      const mockRequest = { headers: { authorization: 'Bearer token123' } } as Request;
+      mockAuthService.logout.mockResolvedValue({ message: 'Logged out' });
 
-      await controller.logout(request);
+      const result = await authController.logout(mockRequest);
 
-      expect(service.logout).toHaveBeenCalledWith('someValidToken');
+      expect(result).toEqual({ message: 'Logged out' });
+      expect(authService.logout).toHaveBeenCalledWith('token123');
     });
   });
 });

@@ -33,7 +33,7 @@ export class UserDto {
   password_confirmation: string;
 
   @ApiPropertyOptional({
-    description: 'User password',
+    description: 'profile photo',
     example: 'https://images.pexels.com/photos/771742/pexels-photo-771742.jpeg',
   })
   @IsOptional()
