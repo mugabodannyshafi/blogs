@@ -10,19 +10,44 @@ import { User } from './database/models/user.model';
 import { Comment } from './database/models/comment.model';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { DatabaseModule } from './database/database.module';
+import { BullModule } from '@nestjs/bull';
+import { ScheduleModule } from '@nestjs/schedule';
+import { MailService } from './mail/mail.service';
+import { Reply } from './database/models/reply.model';
+import { RepliesModule } from './replies/replies.module';
+import { ReportModule } from './report/report.module';
+import { ReportService } from './report/report.service';
+import { StorageModule } from './storage/storage.module';
 
 @Module({
-  imports: [SequelizeModule.forRoot({
-    dialect: 'mysql',
-    host: 'localhost',
-    port: 5432,
-    username: 'root',
-    password: 'dANNY1234@',
-    database: 'blogs',
-    models: [Post, Comment, User],
-    
-  }), DatabaseModule,PostsModule, UsersModule, CommentsModule, AuthModule],
+  imports: [
+    SequelizeModule.forRoot({
+      dialect: 'mysql',
+      host: process.env.DB_HOST ,
+      port: 3306,
+      username: process.env.DB_USER,
+      password: process.env.DB_PASS,
+      database: process.env.DB_NAME,
+      models: [Post, Comment, User, Reply],
+    }),
+    SequelizeModule.forFeature([User]),
+    BullModule.forRoot({
+      redis:{
+        host: 'localhost',
+        port: 6379,
+      }
+    }),
+    ScheduleModule.forRoot(),
+    DatabaseModule,
+    PostsModule,
+    UsersModule,
+    CommentsModule,
+    AuthModule,
+    RepliesModule,
+    ReportModule,
+    StorageModule,
+  ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, MailService],
 })
 export class AppModule {}

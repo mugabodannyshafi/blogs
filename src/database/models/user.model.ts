@@ -14,6 +14,7 @@ import {
   import { Comment } from './comment.model';
   import * as bcrypt from 'bcryptjs';
   import { ApiProperty } from '@nestjs/swagger';
+  import { Reply } from './reply.model';
   
   @Table({ createdAt: true, updatedAt: true })
   export class User extends Model<User> {
@@ -94,5 +95,8 @@ import {
   
     @HasMany(() => Comment)
     comments: Comment[];
+
+    @HasMany(() => Reply)
+    replies: Reply[];
   }
   

@@ -78,23 +78,15 @@ export class AuthController {
     @UploadedFile() image: Express.Multer.File,
   ) {
     try {
-      let imageUrl = null;
-
-      if (image) {
-        const uploadedImage = await this.cloudinaryService.uploadImage(image);
-        imageUrl = uploadedImage.secure_url;
-      }
-      return this.authService.registerUser(signUpData, imageUrl);
+      return this.authService.registerUser(signUpData, image);
     } catch (error) {
       throw new HttpException('Error creating a user', HttpStatus.BAD_REQUEST);
     }
-    // return this.authService.registerUser(signUpData);
   }
 
   @Post('login')
   @UseGuards(LocalGuard)
   async login(@Req() request: Request, @Body() authPayloadDto: AuthPayloadDto) {
-    console.log('-->INSIDE LOGIN CONTROLLER');
     const user = await this.authService.validateUser(
       authPayloadDto.email,
       authPayloadDto.password,
@@ -105,20 +97,13 @@ export class AuthController {
     }
 
     request.session.userId = user.userId;
-    console.log('-->session', request.session);
+    // console.log('-->session', request.session);
     return {
       message: 'Login successful',
-      userId: user.userId, // Return the userId as part of the response if you need
+      userId: user.userId,
     };
   }
 
-  @Get('session')
-  async getAuthSession(@Session() session: Record<string, any>) {
-    // console.log(session)
-    // console.log(session.id)
-    session.authenticated = true;
-    return session;
-  }
 
   @ApiCreatedResponse({
     description: 'Link will automatically sent to the email address',

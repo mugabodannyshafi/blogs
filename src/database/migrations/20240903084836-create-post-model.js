@@ -33,7 +33,7 @@ async up (queryInterface, Sequelize) {
      },
      image: {
        type: Sequelize.STRING,
-       allowNull: false,
+       allowNull: true,
        defaultValue: 'https://static.independent.co.uk/2023/07/07/10/iStock-515064346.jpg?quality=75&width=1200&auto=webp'
      },
      createdAt: {

@@ -13,6 +13,8 @@ import {
   UploadedFile,
   HttpException,
   HttpStatus,
+  Query,
+  BadRequestException,
 } from '@nestjs/common';
 import { PostsService } from './posts.service';
 import { CreatePostDto } from './dto/create-post.dto';
@@ -36,6 +38,7 @@ import { Post as post } from 'src/database/models/post.model';
 import { AuthenticatedGuard } from 'src/auth/guards/local.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
+import { count } from 'console';
 
 @ApiTags('Posts')
 @Controller('posts')
@@ -81,22 +84,15 @@ export class PostsController {
     @Body() createPostDto: CreatePostDto,
     @UploadedFile() image: Express.Multer.File,
   ): Promise<any> {
-    try {
-      let imageUrl = null;
-
-      if (image) {
-        const uploadedImage = await this.cloudinaryService.uploadImage(image);
-        imageUrl = uploadedImage.secure_url;
-      }
-
-      return await this.postsService.create(
-        createPostDto,
-        request.session.userId,
-        imageUrl,
-      );
-    } catch (error) {
-      throw new HttpException('Post creation failed', HttpStatus.BAD_REQUEST);
-    }
+   const post = this.postsService.create(
+      createPostDto,
+      request.session.userId,
+      image,
+    );
+    return {
+      status: 201,
+      message: 'Post created',
+    };
   }
 
   @ApiOkResponse({
@@ -111,8 +107,8 @@ export class PostsController {
   }
 
   @Get()
-  findAllPosts(): any {
-    return this.postsService.findAllPosts();
+  findAllPosts(@Query('page') page: number): any {
+    return this.postsService.findAllPosts(page);
   }
 
   @ApiOkResponse({
@@ -133,7 +129,7 @@ export class PostsController {
   @UseGuards(AuthenticatedGuard)
   @ApiOkResponse({
     description: 'The post has been successfully updated.',
-    type: UpdatePostDto, // Adjust according to the Post entity or response type
+    type: UpdatePostDto, 
   })
   @ApiNotFoundResponse({
     description: 'Post not found',
@@ -209,4 +205,6 @@ export class PostsController {
   remove(@Param('id') id: string) {
     return this.postsService.remove(id);
   }
+
+
 }

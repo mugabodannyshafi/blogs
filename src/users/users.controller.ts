@@ -9,10 +9,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { ApiTags } from '@nestjs/swagger';
+import { updateUserDto } from './dto/update-user.dto';
+import { ApiBadRequestResponse, ApiNotFoundResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { AuthenticatedGuard, LocalGuard } from 'src/auth/guards/local.guard';
+import { User } from 'src/database/models/user.model';
 @ApiTags('User')
 @Controller('users')
 export class UsersController {
@@ -23,19 +23,28 @@ export class UsersController {
     return this.usersService.findAll();
   }
 
-  @UseGuards(AuthenticatedGuard)
-  @Get(':id')
-  findOne(@Param('id') id: any) {
+  @ApiOkResponse({
+    description: 'User returned',
+    type: User,
+  })
+  @ApiNotFoundResponse({
+    description: 'User not found',
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid request',
+  })
+  @Get(':userId')
+  findOne(@Param('userId') id: string) {
     return this.usersService.findOne(id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.update(+id, updateUserDto);
+  update(@Param('id') id: string, @Body() updateUserDto: updateUserDto) {
+    return this.usersService.update(id, updateUserDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.usersService.remove(+id);
+    return this.usersService.remove(id);
   }
 }

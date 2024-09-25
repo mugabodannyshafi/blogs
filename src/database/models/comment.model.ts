@@ -6,10 +6,12 @@ import {
     BelongsTo,
     DataType,
     AllowNull,
+    HasMany,
   } from 'sequelize-typescript';
   import { User } from './user.model';
   import { Post } from './post.model';
   import { ApiProperty } from '@nestjs/swagger';
+  import { Reply } from './reply.model';
   
   @Table({ createdAt: true, updatedAt: true })
   export class Comment extends Model<Comment> {
@@ -73,5 +75,8 @@ import {
   
     @BelongsTo(() => Post)
     post: Post;
+
+    @HasMany(() => Reply)
+    replies: Reply[]
   }
   

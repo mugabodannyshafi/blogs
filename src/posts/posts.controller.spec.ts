@@ -79,7 +79,7 @@ describe('PostsController', () => {
   });
 
   it('should get all posts', async () => {
-    expect(await controller.findAllPosts()).toEqual([testPost]);
+    expect(await controller.findAllPosts(5)).toEqual([testPost]);
   });
 
   it('should get a single post', async () => {

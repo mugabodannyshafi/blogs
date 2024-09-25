@@ -10,6 +10,7 @@ import {
   import { User } from './user.model';
   import { Comment } from './comment.model';
   import { ApiProperty } from '@nestjs/swagger';
+  import { Reply } from './reply.model';
   
   @Table({ createdAt: true, updatedAt: true })
   export class Post extends Model<Post> {
@@ -72,7 +73,7 @@ import {
     })
     @Column({
       type: DataType.STRING,
-      allowNull: false,
+      allowNull: true,
     })
     public image: string;
   
@@ -95,5 +96,8 @@ import {
   
     @HasMany(() => Comment)
     comments: Comment[];
+
+    @HasMany(() => Reply)
+    replies: Reply[];
   }
   

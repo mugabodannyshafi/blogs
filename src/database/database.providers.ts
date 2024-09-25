@@ -3,6 +3,7 @@ import { User } from './models/user.model';
 import { Post } from './models/post.model';
 import { Comment } from './models/comment.model';
 import * as dotenv from 'dotenv';
+import { Reply } from './models/reply.model';
 
 dotenv.config();
 
@@ -12,7 +13,8 @@ export const databaseProviders = [
     useFactory: async () => {
       const sequelize = new Sequelize(process.env.DATABASE_URL, {
         dialect: 'mysql',
-        models: [User, Post, Comment],
+        port: 3306,
+        models: [User, Post, Comment, Reply],
         logging: false,
       });
 
