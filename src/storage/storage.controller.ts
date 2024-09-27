@@ -13,14 +13,29 @@ import {
 } from '@nestjs/common';
 import { StorageService } from './storage.service';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { AuthenticatedGuard } from 'src/auth/guards/local.guard';
+import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 
+@ApiTags('storage')
 @Controller('storage')
 export class StorageController {
   constructor(private readonly storageService: StorageService) {}
 
-  @UseGuards(AuthenticatedGuard)
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @Post('file')
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
   @UseInterceptors(FileInterceptor('file'))
   async uploadFile(
     @UploadedFile() file: Express.Multer.File,

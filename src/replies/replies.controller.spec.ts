@@ -3,10 +3,13 @@ import { RepliesController } from './replies.controller';
 import { RepliesService } from './replies.service';
 import { NotFoundException } from '@nestjs/common';
 import { CreateReplyDto } from './dto/create-reply.dto';
+import { JwtService } from '@nestjs/jwt';
+import { Request } from 'express';
 
 describe('RepliesController', () => {
   let controller: RepliesController;
   let service: RepliesService;
+  let jwtService: JwtService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -18,6 +21,12 @@ describe('RepliesController', () => {
             create: jest.fn(),
             findAll: jest.fn(),
             findReplies: jest.fn(),
+          },
+        },
+        {
+          provide: JwtService,
+          useValue: {
+            decode: jest.fn(() => ({ userId: 'user-id' })),
           },
         },
       ],
@@ -38,10 +47,8 @@ describe('RepliesController', () => {
       const createReplyDto: CreateReplyDto = { reply: 'hello' };
 
       const mockRequest = {
-        session: {
-          userId: userId,
-        },
-      } as any;
+        headers: { authorization: 'Bearer token' },
+      } as Request;
 
       jest
         .spyOn(service, 'create')
@@ -58,10 +65,8 @@ describe('RepliesController', () => {
       const createReplyDto: CreateReplyDto = { reply: 'hello' };
 
       const mockRequest = {
-        session: {
-          userId: userId,
-        },
-      } as any;
+        headers: { authorization: 'Bearer token' },
+      } as Request;
 
       jest
         .spyOn(service, 'create')
@@ -78,10 +83,8 @@ describe('RepliesController', () => {
       const createReplyDto: CreateReplyDto = { reply: 'hello' };
 
       const mockRequest = {
-        session: {
-          userId: userId,
-        },
-      } as any;
+        headers: { authorization: 'Bearer token' },
+      } as Request;
 
       jest
         .spyOn(service, 'create')

@@ -103,20 +103,6 @@ describe('CommentsService', () => {
   });
 
   describe('create', () => {
-    // it('should create a new comment', async () => {
-    //   const result = await service.create(
-    //     '157ff5f6-50a6-4abf-a07a-0b4923b1b97c',
-    //     'This is a comment',
-    //     'post1',
-    //   );
-
-    //   expect(result).toEqual(mockComment);
-    //   expect(commentModel.create).toHaveBeenCalledWith({
-    //     comment: 'This is a comment',
-    //     userId: '157ff5f6-50a6-4abf-a07a-0b4923b1b97c',
-    //     postId: 'post1',
-    //   });
-    // });
 
     it('should throw BadRequestException if userId is missing', async () => {
       await expect(
@@ -145,12 +131,6 @@ describe('CommentsService', () => {
   });
 
   describe('getComments', () => {
-    // it('should return comments for a post', async () => {
-    //   const postId = 'post1';
-    //   const result = await service.getComments(postId);
-    //   expect(result).toEqual([mockComment]);
-    //   expect(commentModel.findAll).toHaveBeenCalledWith({ where: { postId } });
-    // });
 
     it('should throw NotFoundException if no comments are found', async () => {
       commentModel.findAll = jest.fn().mockResolvedValue([]);

@@ -68,7 +68,6 @@ export class PostsService {
   }
 
   async findOne(postId: string): Promise<Post> {
-    // console.log('first', postId)
 
     const post = await this.postModel.findOne({ where: { postId } });
     if (post === null) {

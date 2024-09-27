@@ -27,7 +27,6 @@ export class FileUploadProcessor {
     const { image, postId } = job.data;
 
     try {
-
       if (!image || !image.originalname) {
         throw new Error('Image data is undefined or invalid');
       }
@@ -91,7 +90,6 @@ export class FileUploadProcessor {
       );
       const destinationPath = `/${Date.now()}_${sanitizedFileName}`;
       const filePath = path.join(this.uploadsDir, sanitizedFileName);
-
 
       this.logger.log(
         `Received file upload: ${profile.originalname}, size: ${profile.size}`,

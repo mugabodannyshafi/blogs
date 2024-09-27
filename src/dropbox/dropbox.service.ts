@@ -98,6 +98,88 @@ export class DropboxService {
       this.logger.error(
         `Error during Dropbox upload: ${destinationPath}, ${error.message}`,
       );
+      console.log('Dropbox upload failed: ' + error.message);
+    }
+  }
+
+  async uploadLargeFileToDropboxWithResuming(
+    filePath: string,
+    destinationPath: string,
+  ): Promise<void> {
+    const fileSize = fs.statSync(filePath).size;
+    const fileStream = createReadStream(filePath, {
+      highWaterMark: this.CHUNK_SIZE,
+    });
+    let sessionId: string | null = null;
+    let uploadedBytes = 0;
+    const maxRetries = 5;
+    const baseDelay = 1000;
+
+    this.logger.log(
+      `Starting resumable upload for Dropbox: ${filePath}, size: ${fileSize} bytes`,
+    );
+
+    try {
+      for await (const chunk of fileStream) {
+        let attempt = 0;
+        let success = false;
+
+        while (attempt <= maxRetries && !success) {
+          try {
+            if (!sessionId) {
+              const startResponse = await this.dropbox.filesUploadSessionStart({
+                close: false,
+                contents: chunk,
+              });
+              sessionId = startResponse.result.session_id;
+              this.logger.log(`Started upload session with ID: ${sessionId}`);
+            } else {
+              await this.dropbox.filesUploadSessionAppendV2({
+                cursor: {
+                  session_id: sessionId,
+                  offset: uploadedBytes,
+                },
+                contents: chunk,
+              });
+              this.logger.log(
+                `Appended ${chunk.length} bytes, total uploaded: ${uploadedBytes + chunk.length} bytes`,
+              );
+            }
+
+            uploadedBytes += chunk.length;
+            success = true;
+          } catch (error) {
+            attempt++;
+            this.logger.error(`Attempt ${attempt} failed: ${error.message}`);
+            if (attempt > maxRetries) {
+              this.logger.error('Max retries reached. Aborting upload.');
+              throw new BadRequestException(
+                'File upload failed after multiple retries: ' + error.message,
+              );
+            }
+            const delay = baseDelay * Math.pow(2, attempt);
+            this.logger.log(`Retrying in ${delay}ms...`);
+            await this.delay(delay);
+          }
+        }
+      }
+
+      await this.dropbox.filesUploadSessionFinish({
+        cursor: {
+          session_id: sessionId,
+          offset: uploadedBytes,
+        },
+        commit: {
+          path: destinationPath,
+          mode: { '.tag': 'overwrite' },
+        },
+      });
+      8;
+      this.logger.log(`Upload complete: ${destinationPath}`);
+    } catch (error) {
+      this.logger.error(
+        `Error during Dropbox upload: ${destinationPath}, ${error.message}`,
+      );
       throw new BadRequestException('Dropbox upload failed: ' + error.message);
     }
   }

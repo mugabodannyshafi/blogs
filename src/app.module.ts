@@ -18,6 +18,7 @@ import { RepliesModule } from './replies/replies.module';
 import { ReportModule } from './report/report.module';
 import { ReportService } from './report/report.service';
 import { StorageModule } from './storage/storage.module';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
   imports: [
@@ -36,6 +37,10 @@ import { StorageModule } from './storage/storage.module';
         host: 'localhost',
         port: 6379,
       }
+    }),
+    JwtModule.register({
+      secret: 'abc.456',
+      signOptions: { expiresIn: '1h' },
     }),
     ScheduleModule.forRoot(),
     DatabaseModule,

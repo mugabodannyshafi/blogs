@@ -47,7 +47,6 @@ describe('FileUploadProcessor', () => {
     postModel = module.get<typeof Post>(getModelToken(Post));
     userModel = module.get<typeof User>(getModelToken(User));
 
-    // Spying on the error logger
     errorSpy = jest.spyOn(processor['logger'], 'error');
     jest.spyOn(fs, 'writeFileSync').mockImplementation(() => {});
     jest.spyOn(fs, 'unlinkSync').mockImplementation(() => {});

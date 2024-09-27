@@ -6,9 +6,7 @@ import { HtmlEmails } from './utils/HtmlEmails';
 
 @Injectable()
 export class PdfService {
-  constructor (
-    private readonly htmlEmails: HtmlEmails,
-  ) {}
+  constructor(private readonly htmlEmails: HtmlEmails) {}
   async generatePDFReport(
     username: string,
     postCount: number,
@@ -205,10 +203,10 @@ export class PdfService {
     const path = require('path');
     const fs = require('fs');
     const puppeteer = require('puppeteer');
-  
+
     const reportsDir = path.join(process.cwd(), 'src', 'uploadedReports');
     const filePath = path.join(reportsDir, `${username}-daily-report.pdf`);
-  
+
     if (!fs.existsSync(reportsDir)) {
       fs.mkdirSync(reportsDir, { recursive: true });
     }
@@ -368,16 +366,17 @@ export class PdfService {
     `;
 
     const browser = await puppeteer.launch({
-      executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+      executablePath:
+        '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
       headless: true,
     });
     const page = await browser.newPage();
     await page.setContent(htmlContent);
-    
+
     await page.pdf({ path: filePath, format: 'A4' });
-  
+
     await browser.close();
-  
+
     return filePath;
   }
 }

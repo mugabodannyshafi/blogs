@@ -46,25 +46,13 @@ describe('CommentsController', () => {
 
   describe('create', () => {
     it('should create a comment', async () => {
-      const request = {
-        session: {
-          userId: 'user-id',
-        },
-      } as unknown as Request;
+      const request = { headers: { authorization: 'Bearer token' } } as Request;
       const createCommentDto = { comment: 'This is good!' };
 
-      const result = await controller.create(
-        request,
-        createCommentDto as CreateCommentDto,
-        'post-id',
-      );
+      const result = await controller.create(request, createCommentDto as CreateCommentDto, 'post-id');
 
       expect(result).toEqual(testComment);
-      expect(service.create).toHaveBeenCalledWith(
-        'user-id',
-        createCommentDto.comment,
-        'post-id',
-      );
+      expect(service.create).toHaveBeenCalledWith('user-id', createCommentDto.comment, 'post-id');
     });
 
     it('should throw BadRequestException if createCommentDto is not provided', async () => {

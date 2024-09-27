@@ -14,11 +14,13 @@ import { MailService } from 'src/mail/mail.service';
 import { Op } from 'sequelize';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
+import { JwtService } from '@nestjs/jwt';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Injectable()
 export class AuthService {
   constructor(
+    private jwtService: JwtService,
     private mailService: MailService,
     @InjectModel(User) private readonly UserModel: typeof User,
     @InjectQueue('mailQueue') private readonly mailQueue: Queue,
@@ -69,7 +71,7 @@ export class AuthService {
         'uploadUserImage',
         {
           profile: image,
-          userId: user.userId
+          userId: user.userId,
         },
         { delay: 3000, lifo: true },
       );
@@ -83,11 +85,15 @@ export class AuthService {
         email,
       },
     });
-    if (user === null) throw new UnauthorizedException('Invalid credentials');
+    if (!user) throw new UnauthorizedException('Invalid credentials');
     const passwordMatch = await bcrypt.compare(password, user.password);
     if (!passwordMatch) throw new UnauthorizedException('Invalid credentials');
 
-    return user;
+    const payload = { userId: user.userId };
+    return {
+      user: user,
+      token: this.jwtService.sign(payload),
+    };
   }
 
   async forgotPassword(email: string) {
@@ -101,7 +107,6 @@ export class AuthService {
         { otp: resetToken, otpExpiresAt: otpExpiresAt },
         { where: { email } },
       );
-      // await this.mailService.sendPasswordResetEmail(email, resetToken);
       await this.mailQueue.add(
         'sendResetMail',
         {

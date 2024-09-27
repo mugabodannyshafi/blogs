@@ -36,9 +36,10 @@ import {
 } from '@nestjs/swagger';
 import { User } from 'src/database/models/user.model';
 import { ForgotResponse } from './dto/forgot-password-response.dto';
-import { AuthenticatedGuard, LocalGuard } from './guards/local.guard';
+import { JwtAuthGuard } from './guards/jwt.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
+import { LocalGuard } from './guards/local.guard';
 
 @ApiTags('User')
 @Controller('auth')
@@ -86,24 +87,14 @@ export class AuthController {
 
   @Post('login')
   @UseGuards(LocalGuard)
-  async login(@Req() request: Request, @Body() authPayloadDto: AuthPayloadDto) {
-    const user = await this.authService.validateUser(
+  login(@Body() authPayloadDto: AuthPayloadDto) {
+    const user = this.authService.validateUser(
       authPayloadDto.email,
       authPayloadDto.password,
     );
-
-    if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
-
-    request.session.userId = user.userId;
-    // console.log('-->session', request.session);
-    return {
-      message: 'Login successful',
-      userId: user.userId,
-    };
+    if (!user) throw new HttpException('Invalid credentials', 401);
+    return user;
   }
-
 
   @ApiCreatedResponse({
     description: 'Link will automatically sent to the email address',
@@ -131,7 +122,8 @@ export class AuthController {
     );
   }
 
-  @UseGuards(AuthenticatedGuard)
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @Post('logout')
   async logout(@Req() request: Request) {
     const token = request.headers.authorization.replace('Bearer ', '');

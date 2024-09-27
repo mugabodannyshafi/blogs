@@ -11,7 +11,6 @@ import {
 import { UsersService } from './users.service';
 import { updateUserDto } from './dto/update-user.dto';
 import { ApiBadRequestResponse, ApiNotFoundResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import { AuthenticatedGuard, LocalGuard } from 'src/auth/guards/local.guard';
 import { User } from 'src/database/models/user.model';
 @ApiTags('User')
 @Controller('users')

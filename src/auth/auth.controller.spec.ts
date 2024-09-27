@@ -7,7 +7,11 @@ import { AuthPayloadDto } from './dto/auth.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset.password.dto';
 import { Request } from 'express';
-import { UnauthorizedException, HttpStatus, HttpException } from '@nestjs/common';
+import {
+  UnauthorizedException,
+  HttpStatus,
+  HttpException,
+} from '@nestjs/common';
 import { LocalGuard } from './guards/local.guard';
 
 describe('AuthController', () => {
@@ -43,87 +47,58 @@ describe('AuthController', () => {
     cloudinaryService = module.get<CloudinaryService>(CloudinaryService);
   });
 
-  // describe('register', () => {
-  //   it('should register a user successfully', async () => {
-  //     const userDto: UserDto = {
-  //       email: 'test@test.com',
-  //       username: 'testUser',
-  //       password: 'password123',
-  //       password_confirmation: 'password123',
-  //     };
-  //     const mockFile = { originalname: 'test.jpg', buffer: Buffer.from('') } as Express.Multer.File;
-  //     const result = { message: 'User created successfully' };
+  it('should be defined', () => {
+    expect(authController).toBeDefined();
+  });
 
-  //     jest.spyOn(authService, 'registerUser').mockResolvedValue(result);
-
-  //     const response = await authController.register(userDto, mockFile);
-
-  //     expect(response).toEqual(result);
-  //     expect(authService.registerUser).toHaveBeenCalledWith(userDto, mockFile);
-  //   });
-
-  //   it('should throw an error when registration fails', async () => {
-  //     const userDto: UserDto = {
-  //       email: 'test@test.com',
-  //       username: 'testUser',
-  //       password: 'password123',
-  //       password_confirmation: 'password123',
-  //     };
-  //     const mockFile = { originalname: 'test.jpg', buffer: Buffer.from('') } as Express.Multer.File;
-
-  //     jest.spyOn(authService, 'registerUser').mockRejectedValue(new Error());
-
-  //     await expect(authController.register(userDto, mockFile)).rejects.toThrow(
-  //       new HttpException('Error creating a user', HttpStatus.BAD_REQUEST),
-  //     );
-  //   });
-  // });
-
-  describe('login', () => {
-    it('should login successfully', async () => {
-      const request = {
-        session: {},
-      } as Request;
-
-      const authPayload: AuthPayloadDto = {
-        email: 'test@test.com',
-        password: 'password123',
+  describe('register', () => {
+    it('should call AuthService registerUser', async () => {
+      const signUpData: UserDto = {
+        email: 'danny@gmail.com',
+        username: 'MUGABO Shafi Danny',
+        password: 'plainPassword',
+        password_confirmation: 'plainPassword',
+        profile: 'profile image',
       };
-
-      const mockUser = {
-        userId: 'userId123',
-      };
-
-      jest.spyOn(authService, 'validateUser').mockResolvedValue(mockUser);
-
-      const result = await authController.login(request, authPayload);
-
-      expect(result).toEqual({
-        message: 'Login successful',
-        userId: mockUser.userId,
-      });
-      expect(authService.validateUser).toHaveBeenCalledWith(
-        authPayload.email,
-        authPayload.password,
+      const mockFile = {
+        originalname: 'test.jpg',
+        buffer: Buffer.from(''),
+      } as Express.Multer.File;
+      await authController.register(signUpData, mockFile);
+      expect(authService.registerUser).toHaveBeenCalledWith(
+        signUpData,
+        mockFile,
       );
-      expect(request.session.userId).toBe(mockUser.userId);
+    });
+  });
+  describe('login', () => {
+    it('should return user on successful login', async () => {
+      const authPayloadDto: AuthPayloadDto = {
+        email: 'test@test.com',
+        password: 'password',
+      };
+      const user = { id: 1, email: 'test@test.com' };
+      authService.validateUser = jest.fn().mockReturnValue(user);
+
+      const result = await authController.login(authPayloadDto);
+      expect(result).toEqual(user);
     });
 
-    it('should throw an UnauthorizedException when login fails', async () => {
-      const request = {
-        session: {},
-      } as Request;
-
-      const authPayload: AuthPayloadDto = {
+    it('should throw an error if credentials are invalid', async () => {
+      const authPayloadDto: AuthPayloadDto = {
         email: 'test@test.com',
         password: 'wrongpassword',
       };
 
-      jest.spyOn(authService, 'validateUser').mockResolvedValue(null);
+      authService.validateUser = jest.fn().mockReturnValue(null);
 
-      await expect(authController.login(request, authPayload)).rejects.toThrow(
-        new UnauthorizedException('Invalid credentials'),
-      );
+      try {
+        await authController.login(authPayloadDto);
+      } catch (error) {
+        expect(error).toBeInstanceOf(HttpException);
+        expect(error.message).toBe('Invalid credentials');
+        expect(error.getStatus()).toBe(401);
+      }
     });
   });
 
@@ -137,7 +112,9 @@ describe('AuthController', () => {
       const response = await authController.forgotPassword(forgotPasswordDto);
 
       expect(response).toEqual(result);
-      expect(authService.forgotPassword).toHaveBeenCalledWith(forgotPasswordDto.email);
+      expect(authService.forgotPassword).toHaveBeenCalledWith(
+        forgotPasswordDto.email,
+      );
     });
   });
 

@@ -58,17 +58,19 @@ describe('MailService', () => {
   describe('sendScheduledMail', () => {
     it('it should send scheduled mail', async () => {
       const to = 'shafi@gmail.com';
-      const date_time = new Date()
-      const username = 'MUGABO Shafi Danny'
+      const date_time = new Date();
+      const username = 'MUGABO Shafi Danny';
 
-      await service.sendScheduledMail(username, date_time, to)
+      await service.sendScheduledMail(username, date_time, to);
 
       expect(nodemailer.createTransport().sendMail).toHaveBeenCalledWith({
         from: process.env.EMAIL_USER,
         to: to,
         subject: 'Task alert',
-        html: expect.stringContaining('Thank you for your attention to this matter')
-      })
-    })
-  })
+        html: expect.stringContaining(
+          'Thank you for your attention to this matter',
+        ),
+      });
+    });
+  });
 });

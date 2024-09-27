@@ -1,9 +1,4 @@
-import {
-  Column,
-  Model,
-  Table,
-  DataType,
-} from 'sequelize-typescript';
+import { Column, Model, Table, DataType } from 'sequelize-typescript';
 
 @Table({ createdAt: true, updatedAt: true })
 export class SessionEntity extends Model<SessionEntity> {

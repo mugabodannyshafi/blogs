@@ -33,7 +33,6 @@ export class ReportService {
 
   private readonly logger = new Logger(ReportService.name);
 
-  // @Cron('*/20 * * * * *')
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async handleCron() {
     this.logger.log('Sending daily reports to all users');

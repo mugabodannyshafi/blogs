@@ -6,10 +6,11 @@ import { Post } from 'src/database/models/post.model';
 import { User } from 'src/database/models/user.model';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { Reply } from 'src/database/models/reply.model';
+import { JwtService } from '@nestjs/jwt';
 
 @Module({
   imports: [SequelizeModule.forFeature([Comment, Post, User, Reply])],
   controllers: [RepliesController],
-  providers: [RepliesService],
+  providers: [RepliesService, JwtService],
 })
 export class RepliesModule {}

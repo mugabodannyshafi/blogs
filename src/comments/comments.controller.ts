@@ -15,7 +15,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ApiBadRequestResponse, ApiBearerAuth, ApiCreatedResponse, ApiInternalServerErrorResponse, ApiTags } from '@nestjs/swagger';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { Comment } from 'src/database/models/comment.model';
-import { AuthenticatedGuard } from 'src/auth/guards/local.guard';
+import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 @ApiTags('Comments')
 @Controller('comments')
 export class CommentsController {
@@ -24,7 +24,8 @@ export class CommentsController {
     private readonly jwtService: JwtService,
   ) {}
 
-  @UseGuards(AuthenticatedGuard)
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @Post(':id')
   @ApiCreatedResponse({
     description: 'Comment created',
@@ -44,7 +45,11 @@ export class CommentsController {
     if (!createCommentDto) {
       throw new BadRequestException('Comment is required');
     }
-    return this.commentsService.create(request.session.userId, createCommentDto.comment, postId);
+    const token = request.headers.authorization.replace('Bearer ', '');
+    const json = this.jwtService.decode(token, { json: true }) as {
+      userId: string;
+    };
+    return this.commentsService.create(json.userId, createCommentDto.comment, postId);
   }
 
   @Get('')

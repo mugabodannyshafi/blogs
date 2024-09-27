@@ -20,7 +20,6 @@ export class CommentsService {
   ) {}
 
   async create(userId: string, comment: string, postId: string) {
-    // Input validation
     if (!userId) {
       throw new BadRequestException('User ID is required');
     }
@@ -31,7 +30,6 @@ export class CommentsService {
       throw new BadRequestException('Comment is required');
     }
 
-    // Check if user exists
     const user = await this.userModel.findOne({ where: { userId } });
     if (!user) {
       throw new NotFoundException({
@@ -40,7 +38,6 @@ export class CommentsService {
       });
     }
 
-    // Check if post exists before accessing its properties
     const post = await this.postModel.findOne({ where: { postId } });
     if (!post) {
       throw new NotFoundException({
@@ -49,7 +46,6 @@ export class CommentsService {
       });
     }
 
-    // Retrieve the user who created the post
     const postOwner = await this.userModel.findOne({ where: { userId: post.userId } });
     if (!postOwner) {
       throw new NotFoundException({
@@ -58,14 +54,12 @@ export class CommentsService {
       });
     }
 
-    // Create new comment
     const newComment = await this.commentModel.create({
       comment,
       userId,
       postId,
     });
 
-    // If comment created successfully, send notification email
     if (newComment) {
       await this.mailService.sendNewCommentEmail(user.username, post.title, comment, postOwner.email);
     }
@@ -74,7 +68,6 @@ export class CommentsService {
   }
 
   async getComments(postId: string) {
-    // Check if post exists
     const post = await this.postModel.findOne({ where: { postId } });
     if (!post) {
       throw new NotFoundException({
@@ -83,7 +76,6 @@ export class CommentsService {
       });
     }
 
-    // Retrieve comments for the post
     const comments = await this.commentModel.findAll({ where: { postId } });
     if (comments.length === 0) {
       throw new NotFoundException({

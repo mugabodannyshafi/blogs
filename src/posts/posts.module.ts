@@ -10,7 +10,7 @@ import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
 import { BullModule } from '@nestjs/bull';
 import { FileUploadProcessor } from './fileUpload.proccessor';
 import { DropboxService } from 'src/dropbox/dropbox.service';
-import { Dropbox } from 'dropbox'; // Import Dropbox SDK
+import { Dropbox } from 'dropbox';
 
 @Module({
   imports: [
@@ -29,7 +29,7 @@ import { Dropbox } from 'dropbox'; // Import Dropbox SDK
     {
       provide: Dropbox,
       useFactory: () => {
-        return new Dropbox({ accessToken: process.env.DROPBOX_ACCESS_TOKEN }); // Use your Dropbox access token here
+        return new Dropbox({ accessToken: process.env.DROPBOX_ACCESS_TOKEN });
       },
     },
   ],

@@ -10,6 +10,7 @@ import { Reply } from 'src/database/models/reply.model';
 import { Post } from 'src/database/models/post.model';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Request } from 'express';
+import { JwtService } from '@nestjs/jwt';
 
 const mockMailService = {
   sendDailyReportEmail: jest.fn(),
@@ -47,6 +48,7 @@ interface CreateReportDto {
 describe('ReportController', () => {
   let controller: ReportController;
   let service: ReportService;
+  let jwtService: JwtService
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -56,6 +58,12 @@ describe('ReportController', () => {
         {
           provide: MailService,
           useValue: mockMailService,
+        },
+        {
+          provide: JwtService,
+          useValue: {
+            decode: jest.fn(() => ({ userId: 'user-id' })),
+          },
         },
         {
           provide: PdfService,
@@ -95,13 +103,8 @@ describe('ReportController', () => {
         endingDate: new Date('2023-01-31'),
       };
   
-      const mockRequest = {
-        session: {
-          userId: 'user1',
-        },
-      } as unknown as Request;
+      const mockRequest = { headers: { authorization: 'Bearer token' } } as Request;
   
-      // Call the actual controller method instead of mocking the service to throw.
       await expect(controller.findOne(mockRequest, createReportDto)).rejects.toThrow(BadRequestException);
     });
   
@@ -111,11 +114,7 @@ describe('ReportController', () => {
         endingDate: new Date('2023-01-31'),
       };
   
-      const mockRequest = {
-        session: {
-          userId: 'user1',
-        },
-      } as unknown as Request;
+      const mockRequest = { headers: { authorization: 'Bearer token' } } as Request; 
   
       await expect(controller.findOne(mockRequest, createReportDto)).rejects.toThrow(BadRequestException);
     });

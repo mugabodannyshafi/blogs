@@ -160,17 +160,6 @@ describe('PostsService', () => {
   });
 
   describe('comments', () => {
-    // it('should return comments for a post', async () => {
-    //   postModel.findOne = jest.fn().mockResolvedValue(mockPost);
-    //   commentModel.findAll = jest.fn().mockResolvedValue([mockComment]);
-
-    //   const result = await service.comments('post123');
-
-    //   expect(result).toEqual([mockComment]);
-    //   expect(commentModel.findAll).toHaveBeenCalledWith({
-    //     where: { postId: 'post123' },
-    //   });
-    // });
 
     it('should throw NotFoundException if post is not found', async () => {
       postModel.findOne = jest.fn().mockResolvedValue(null);

@@ -89,49 +89,6 @@ describe('PostsController', () => {
     expect(service.findOne).toBeCalledWith(postId);
   });
 
-  // it('should add a post', async () => {
-  //   const createPostDto = {
-  //     userId: '837634d8-d6f3-459a-a04b-d4469474f330',
-  //     title: 'Rwanda is beautiful country',
-  //     content: 'Rwanda, officially the Republic of Rwanda, is a landlocked country in the Great Rift Valley of East Africa, where the African Great Lakes region and Southeast Africa converge. Located a few degrees south of the Equator, Rwanda is bordered by Uganda, Tanzania, Burundi, and the Democratic Republic of the Congo.',
-  //     author: 'MUGISHA John',
-  //     image: 'http://example.com/image.jpg',
-  //   };
-
-  //   // Mock the cloudinaryService.uploadImage method
-  //   jest.spyOn(cloudinaryService, 'uploadImage').mockResolvedValue({ secure_url: 'http://example.com/image.jpg' });
-
-  //   // Mock the PostsService.create method
-  //   jest.spyOn(service, 'create').mockResolvedValue(testPost);
-
-  //   // Call the controller's create method
-  //   const result = await controller.create({} as Request, createPostDto, null);
-
-  //   // Assert the result
-  //   expect(result).toEqual(testPost);
-  //   expect(service.create).toHaveBeenCalledWith(createPostDto, 'userId', 'http://example.com/image.jpg');
-  // });
-
-  // it('should update the post', async () => {
-  //   const postId = '8cb85070-65af-437a-9811-95d4aace9403';
-  //   const updatePostDto = {
-  //     title: 'Siemans',
-  //     content: 'hello',
-  //   };
-
-  //   const updatedPost: Post = {
-  //     ...testPost,
-  //     id: postId,
-  //     ...updatePostDto,
-  //   };
-
-  //   jest.spyOn(service, 'update').mockResolvedValue(updatedPost);
-
-  //   const result = await controller.update(postId, updatePostDto);
-  //   expect(result).toEqual(updatedPost);
-  //   expect(service.update).toHaveBeenCalledWith(postId, updatePostDto, null);
-  // });
-
   it('should remove the post', async () => {
     await controller.remove('8cb85070-65af-437a-9811-95d4aace9403');
     expect(service.remove).toHaveBeenCalledWith(

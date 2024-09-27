@@ -35,11 +35,17 @@ describe('MailProcessor', () => {
       const jobData = { to: 'x@example.com', username: 'testuser' };
       const job = { data: jobData } as Job;
 
-      const spySendRegistrationEmail = jest.spyOn(mailService, 'sendRegistrationEMail');
+      const spySendRegistrationEmail = jest.spyOn(
+        mailService,
+        'sendRegistrationEMail',
+      );
 
       await processor.handleSendMail(job);
 
-      expect(spySendRegistrationEmail).toHaveBeenCalledWith(jobData.to, jobData.username);
+      expect(spySendRegistrationEmail).toHaveBeenCalledWith(
+        jobData.to,
+        jobData.username,
+      );
     });
   });
 
@@ -48,11 +54,17 @@ describe('MailProcessor', () => {
       const jobData = { to: 'test@example.com', token: 'reset_token' };
       const job = { data: jobData } as Job;
 
-      const spySendPasswordResetEmail = jest.spyOn(mailService, 'sendPasswordResetEmail');
+      const spySendPasswordResetEmail = jest.spyOn(
+        mailService,
+        'sendPasswordResetEmail',
+      );
 
       await processor.handleSendResetMail(job);
 
-      expect(spySendPasswordResetEmail).toHaveBeenCalledWith(jobData.to, jobData.token);
+      expect(spySendPasswordResetEmail).toHaveBeenCalledWith(
+        jobData.to,
+        jobData.token,
+      );
     });
   });
 });

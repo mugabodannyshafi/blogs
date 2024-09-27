@@ -9,10 +9,11 @@ import { Reply } from 'src/database/models/reply.model';
 import { MailService } from 'src/mail/mail.service';
 import { PdfService } from 'src/pdf/generatePdf.service';
 import { HtmlEmails } from 'src/pdf/utils/HtmlEmails';
+import { JwtService } from '@nestjs/jwt';
 
 @Module({
   imports: [SequelizeModule.forFeature([User, Post, Comment, Reply])],
   controllers: [ReportController],
-  providers: [ReportService, MailService, PdfService, HtmlEmails],
+  providers: [ReportService, MailService, PdfService, HtmlEmails, JwtService],
 })
 export class ReportModule {}

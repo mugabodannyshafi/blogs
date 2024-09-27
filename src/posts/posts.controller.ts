@@ -35,7 +35,7 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { Post as post } from 'src/database/models/post.model';
-import { AuthenticatedGuard } from 'src/auth/guards/local.guard';
+import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
 import { count } from 'console';
@@ -46,9 +46,11 @@ export class PostsController {
   constructor(
     private readonly postsService: PostsService,
     private readonly cloudinaryService: CloudinaryService,
+    private readonly jwtService: JwtService,
   ) {}
 
-  @UseGuards(AuthenticatedGuard)
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @Post('create-post')
   @ApiCreatedResponse({
     description: 'The post has been successfully created.',
@@ -94,12 +96,12 @@ export class PostsController {
       if (!supportedFormats.includes(image.mimetype))
         throw new BadRequestException('Only image files are allowed!');
     }
+    const token = request.headers.authorization.replace('Bearer ', '');
+    const json = this.jwtService.decode(token, { json: true }) as {
+      userId: string;
+    };
 
-    const post = this.postsService.create(
-      createPostDto,
-      request.session.userId,
-      image,
-    );
+    this.postsService.create(createPostDto, json.userId, image);
     return {
       status: 201,
       message: 'Post created',
@@ -137,7 +139,8 @@ export class PostsController {
     return this.postsService.findOne(id);
   }
 
-  @UseGuards(AuthenticatedGuard)
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @ApiOkResponse({
     description: 'The post has been successfully updated.',
     type: UpdatePostDto,
@@ -183,7 +186,8 @@ export class PostsController {
     }
   }
 
-  @UseGuards(AuthenticatedGuard)
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @ApiOkResponse({
     description: 'The post has been successfully updated.',
     type: post,
@@ -202,7 +206,8 @@ export class PostsController {
     return this.postsService.update(postId, updatePostDto);
   }
 
-  @UseGuards(AuthenticatedGuard)
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @ApiNotFoundResponse({
     description: 'Post not found',
   })

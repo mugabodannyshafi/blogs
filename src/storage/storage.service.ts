@@ -3,23 +3,29 @@ import {
   Logger,
   BadRequestException,
   NotFoundException,
+  Inject,
 } from '@nestjs/common';
 import { Dropbox } from 'dropbox';
 import * as fs from 'fs';
 import * as path from 'path';
 import { createReadStream, createWriteStream } from 'fs';
-
+import { DropboxService } from 'src/dropbox/dropbox.service';
+import { FileUploadService } from 'src/upload/fileUpload.service';
 @Injectable()
 export class StorageService {
   private readonly logger = new Logger(StorageService.name);
   private readonly CHUNK_SIZE = 8 * 1024 * 1024;
   private readonly uploadsDir = path.join(__dirname, '../uploads');
 
+
   private readonly dropbox = new Dropbox({
     accessToken: process.env.DROPBOX_ACCESS_TOKEN,
   });
 
-  constructor() {
+  constructor(
+   @Inject() private readonly dropboxService: DropboxService,
+   @Inject() private readonly fileUploadService: FileUploadService,
+  ) {
     if (!fs.existsSync(this.uploadsDir)) {
       fs.mkdirSync(this.uploadsDir, { recursive: true });
     }
@@ -47,12 +53,12 @@ export class StorageService {
       this.logger.log(`File saved locally at: ${filePath}`);
 
       if (storageType === 'local') {
-        await this.uploadLargeFileLocallyWithResuming(
+        await this.fileUploadService.uploadLargeFileLocallyWithResuming(
           filePath,
           destinationPath,
         );
       } else if (storageType === 'dropbox') {
-        await this.uploadLargeFileToDropboxWithResuming(
+        await this.dropboxService.uploadLargeFileToDropboxWithResuming(
           filePath,
           destinationPath,
         );
@@ -106,131 +112,6 @@ export class StorageService {
     } else {
       throw new BadRequestException('Unsupported storage type');
     }
-  }
-  async uploadLargeFileLocallyWithResuming(
-    filePath: string,
-    destinationPath: string,
-  ): Promise<void> {
-    const fileSize = fs.statSync(filePath).size;
-    const fileStream = createReadStream(filePath, {
-      highWaterMark: this.CHUNK_SIZE,
-    });
-    const destinationFilePath = path.join(this.uploadsDir, destinationPath);
-    let uploadedBytes = 0;
-
-    this.logger.log(
-      `Starting resumable upload for local storage: ${filePath}, size: ${fileSize} bytes`,
-    );
-
-    const writeStream = createWriteStream(destinationFilePath, { flags: 'a' });
-
-    try {
-      for await (const chunk of fileStream) {
-        writeStream.write(chunk);
-        uploadedBytes += chunk.length;
-        this.logger.log(
-          `Appended ${chunk.length} bytes, total uploaded: ${uploadedBytes} bytes`,
-        );
-
-        await this.delay(500);
-      }
-
-      writeStream.end();
-      this.logger.log(`Upload complete for local file: ${destinationFilePath}`);
-    } catch (error) {
-      this.logger.error(
-        `Error during resumable local upload: ${error.message}`,
-      );
-      throw new BadRequestException(
-        'Local file upload failed: ' + error.message,
-      );
-    }
-  }
-
-  async uploadLargeFileToDropboxWithResuming(
-    filePath: string,
-    destinationPath: string,
-  ): Promise<void> {
-    const fileSize = fs.statSync(filePath).size;
-    const fileStream = createReadStream(filePath, {
-      highWaterMark: this.CHUNK_SIZE,
-    });
-    let sessionId: string | null = null;
-    let uploadedBytes = 0;
-    const maxRetries = 5;
-    const baseDelay = 1000;
-
-    this.logger.log(
-      `Starting resumable upload for Dropbox: ${filePath}, size: ${fileSize} bytes`,
-    );
-
-    try {
-      for await (const chunk of fileStream) {
-        let attempt = 0;
-        let success = false;
-
-        while (attempt <= maxRetries && !success) {
-          try {
-            if (!sessionId) {
-              const startResponse = await this.dropbox.filesUploadSessionStart({
-                close: false,
-                contents: chunk,
-              });
-              sessionId = startResponse.result.session_id;
-              this.logger.log(`Started upload session with ID: ${sessionId}`);
-            } else {
-              await this.dropbox.filesUploadSessionAppendV2({
-                cursor: {
-                  session_id: sessionId,
-                  offset: uploadedBytes,
-                },
-                contents: chunk,
-              });
-              this.logger.log(
-                `Appended ${chunk.length} bytes, total uploaded: ${uploadedBytes + chunk.length} bytes`,
-              );
-            }
-
-            uploadedBytes += chunk.length;
-            success = true;
-          } catch (error) {
-            attempt++;
-            this.logger.error(`Attempt ${attempt} failed: ${error.message}`);
-            if (attempt > maxRetries) {
-              this.logger.error('Max retries reached. Aborting upload.');
-              throw new BadRequestException(
-                'File upload failed after multiple retries: ' + error.message,
-              );
-            }
-            const delay = baseDelay * Math.pow(2, attempt);
-            this.logger.log(`Retrying in ${delay}ms...`);
-            await this.delay(delay);
-          }
-        }
-      }
-
-      await this.dropbox.filesUploadSessionFinish({
-        cursor: {
-          session_id: sessionId,
-          offset: uploadedBytes,
-        },
-        commit: {
-          path: destinationPath,
-          mode: { '.tag': 'overwrite' },
-        },
-      });
-      8;
-      this.logger.log(`Upload complete: ${destinationPath}`);
-    } catch (error) {
-      this.logger.error(
-        `Error during Dropbox upload: ${destinationPath}, ${error.message}`,
-      );
-      throw new BadRequestException('Dropbox upload failed: ' + error.message);
-    }
-  }
-
-  private delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
   }
   async retrieveLocalFile(fileName: string): Promise<string> {
     try {

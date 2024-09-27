@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { StorageController } from './storage.controller';
 import { StorageService } from './storage.service';
-import { AuthenticatedGuard } from 'src/auth/guards/local.guard';
 import { ExecutionContext } from '@nestjs/common';
 import { of } from 'rxjs';
 
@@ -49,7 +48,10 @@ describe('StorageController', () => {
       const result = await controller.uploadFile(mockFile, mockStorageType);
 
       expect(result).toEqual(mockResponse);
-      expect(service.handleFileUpload).toHaveBeenCalledWith(mockFile, mockStorageType);
+      expect(service.handleFileUpload).toHaveBeenCalledWith(
+        mockFile,
+        mockStorageType,
+      );
     });
   });
 
@@ -61,10 +63,16 @@ describe('StorageController', () => {
 
       jest.spyOn(service, 'handleRetrieveFile').mockResolvedValue(mockResponse);
 
-      const result = await controller.retrieveFile(mockFileName, mockStorageType);
+      const result = await controller.retrieveFile(
+        mockFileName,
+        mockStorageType,
+      );
 
       expect(result).toEqual(mockResponse);
-      expect(service.handleRetrieveFile).toHaveBeenCalledWith(mockFileName, mockStorageType);
+      expect(service.handleRetrieveFile).toHaveBeenCalledWith(
+        mockFileName,
+        mockStorageType,
+      );
     });
   });
 
@@ -79,7 +87,10 @@ describe('StorageController', () => {
       const result = await controller.deleteFile(mockFileName, mockStorageType);
 
       expect(result).toEqual(mockResponse);
-      expect(service.handleDeleteFile).toHaveBeenCalledWith(mockFileName, mockStorageType);
+      expect(service.handleDeleteFile).toHaveBeenCalledWith(
+        mockFileName,
+        mockStorageType,
+      );
     });
   });
 });
