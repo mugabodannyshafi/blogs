@@ -1,30 +1,33 @@
 import { Sequelize } from 'sequelize-typescript';
-import { User } from 'src/users/entities/user.entity';
-import { Post } from 'src/posts/entities/post.entity';
-import { Comment } from 'src/comments/entities/comment.entity';
+import { User } from './models/user.model';
+import { Post } from './models/post.model';
+import { Comment } from './models/comment.model';
 import * as dotenv from 'dotenv';
-dotenv.config();
+import { Reply } from './models/reply.model';
 
+dotenv.config();
 
 export const databaseProviders = [
   {
     provide: 'SEQUELIZE',
     useFactory: async () => {
-        console.log('-->first: ', process.env.DATABASE_URL)
       const sequelize = new Sequelize(process.env.DATABASE_URL, {
-        dialect: 'postgres',
+        dialect: 'mysql',
+        port: 3306,
+        models: [User, Post, Comment, Reply],
+        logging: false,
       });
-      sequelize.addModels([User, Post, Comment]);
 
       try {
         await sequelize.authenticate();
-        console.log('Connected to database');
+        console.log(
+          'Connection to the database has been established successfully.',
+        );
       } catch (error) {
         console.error('Unable to connect to the database:', error);
       }
 
-      await sequelize.sync(); 
       return sequelize;
-    }
-  }
+    },
+  },
 ];

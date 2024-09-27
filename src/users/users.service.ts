@@ -1,26 +1,55 @@
-import { Injectable } from '@nestjs/common';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { updateUserDto } from './dto/update-user.dto';
+import { User } from 'src/database/models/user.model';
+import { InjectModel } from '@nestjs/sequelize';
 
 @Injectable()
 export class UsersService {
-  create(createUserDto: CreateUserDto) {
-    return 'This action adds a new user';
+  constructor(@InjectModel(User) private readonly userModel: typeof User) {}
+
+  async findAll() {
+    return this.userModel.findAll();
   }
 
-  findAll() {
-    return `This action returns all users`;
+  async findOne(userId: string) {
+    const user = await this.userModel.findOne({ where: { userId } });
+    if (!user)
+      throw new NotFoundException(`User With This id ${userId} Not Found`);
+    return user;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
+  async update(userId: string, updateUserDto: updateUserDto) {
+    const user = await this.userModel.findOne({ where: { userId: userId } });
+    if (user !== null) {
+      const result = await user.update({
+        email: updateUserDto.email,
+        username: updateUserDto.username,
+      });
+      if (result) {
+        return result;
+      }
+    } else {
+      throw new NotFoundException({
+        timestamp: new Date(),
+        message: `User with id ${userId} not found`,
+      });
+    }
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  async remove(userId: string) {
+    const user = await this.userModel.findOne({  where: { userId }})
+    if (user !== null) {
+       await user.destroy()
+      return {
+        statusCode: 204,
+        timestamp: new Date(),
+        message: `User with id ${userId} has been deleted`,
+      }
+    } else {
+      throw new NotFoundException({
+        timestamp: new Date(),
+        message: `User with id ${userId} not found`,
+      });
+    }
   }
 }
