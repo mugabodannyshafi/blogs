@@ -84,7 +84,18 @@ export class PostsController {
     @Body() createPostDto: CreatePostDto,
     @UploadedFile() image: Express.Multer.File,
   ): Promise<any> {
-   const post = this.postsService.create(
+    if (image) {
+      const supportedFormats = [
+        'image/jpeg',
+        'image/png',
+        'image/gif',
+        'image/webp',
+      ];
+      if (!supportedFormats.includes(image.mimetype))
+        throw new BadRequestException('Only image files are allowed!');
+    }
+
+    const post = this.postsService.create(
       createPostDto,
       request.session.userId,
       image,
@@ -129,7 +140,7 @@ export class PostsController {
   @UseGuards(AuthenticatedGuard)
   @ApiOkResponse({
     description: 'The post has been successfully updated.',
-    type: UpdatePostDto, 
+    type: UpdatePostDto,
   })
   @ApiNotFoundResponse({
     description: 'Post not found',
@@ -205,6 +216,4 @@ export class PostsController {
   remove(@Param('id') id: string) {
     return this.postsService.remove(id);
   }
-
-
 }

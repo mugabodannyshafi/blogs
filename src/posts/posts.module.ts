@@ -9,19 +9,29 @@ import { SessionEntity } from 'src/database/models/Sesssion';
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
 import { BullModule } from '@nestjs/bull';
 import { FileUploadProcessor } from './fileUpload.proccessor';
+import { DropboxService } from 'src/dropbox/dropbox.service';
+import { Dropbox } from 'dropbox'; // Import Dropbox SDK
 
 @Module({
   imports: [
-    SequelizeModule.forFeature([
-      Post, 
-      User, 
-      SessionEntity
-    ]),
+    SequelizeModule.forFeature([Post, User, SessionEntity]),
     BullModule.registerQueue({
       name: 'fileUpload',
-    })
+    }),
   ],
   controllers: [PostsController],
-  providers: [PostsService, JwtService, CloudinaryService, FileUploadProcessor],
+  providers: [
+    PostsService,
+    JwtService,
+    CloudinaryService,
+    FileUploadProcessor,
+    DropboxService,
+    {
+      provide: Dropbox,
+      useFactory: () => {
+        return new Dropbox({ accessToken: process.env.DROPBOX_ACCESS_TOKEN }); // Use your Dropbox access token here
+      },
+    },
+  ],
 })
 export class PostsModule {}

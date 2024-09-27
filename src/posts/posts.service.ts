@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Inject,
 } from '@nestjs/common';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
@@ -26,7 +27,7 @@ export class PostsService {
     createPostDto: CreatePostDto,
     userId: string,
     imageUrl: any,
-  ): Promise<Post> {
+  ): Promise<any> {
     const { title, content, author, image } = createPostDto;
     const user = await this.userModel.findOne({ where: { userId } });
     if (user === null)

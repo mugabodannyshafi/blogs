@@ -1,65 +1,125 @@
 import { Processor, Process } from '@nestjs/bull';
 import { Job } from 'bull';
-import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
 import { Post } from 'src/database/models/post.model';
 import { User } from 'src/database/models/user.model';
 import { InjectModel } from '@nestjs/sequelize';
-import { Logger } from '@nestjs/common';
+import { Inject, Logger } from '@nestjs/common';
+import { DropboxService } from 'src/dropbox/dropbox.service';
+import * as fs from 'fs';
+import * as path from 'path';
+import { createReadStream, createWriteStream } from 'fs';
 @Processor('fileUpload')
 export class FileUploadProcessor {
+  private readonly logger = new Logger(FileUploadProcessor.name);
+  private readonly uploadsDir = path.join(__dirname, '../uploads');
   constructor(
-    private readonly cloudinaryService: CloudinaryService,
+    @Inject() private readonly dropboxService: DropboxService,
     @InjectModel(Post) private readonly postModel: typeof Post,
     @InjectModel(User) private readonly userModel: typeof User,
-    ) {}
-    private readonly logger = new Logger(FileUploadProcessor.name);
+  ) {
+    if (!fs.existsSync(this.uploadsDir)) {
+      fs.mkdirSync(this.uploadsDir, { recursive: true });
+    }
+  }
 
   @Process('upload-image')
   async handleImageUpload(job: Job) {
     const { image, postId } = job.data;
 
     try {
-        let imageUrl = null
-        const uploadedImage = await this.cloudinaryService.uploadImage(image);
-        if (!uploadedImage) {
-            this.logger.log(`Failed to upload image`);
-        }
-        imageUrl = uploadedImage.secure_url;
-        const post = await this.postModel.findOne({
-            where: {
-                postId
-            }
-        })
-        if (post) {
-            post.image = imageUrl
-           const result = await post.save()
-           if (result) this.logger.log(`Image uploaded to cloudinary`);
-        }
+
+      if (!image || !image.originalname) {
+        throw new Error('Image data is undefined or invalid');
+      }
+
+      const sanitizedFileName = image.originalname.replace(
+        /[^a-zA-Z0-9.\-_]/g,
+        '',
+      );
+      const destinationPath = `/${Date.now()}_${sanitizedFileName}`;
+      const filePath = path.join(this.uploadsDir, sanitizedFileName);
+
+      this.logger.log(
+        `Received file upload: ${image.originalname}, size: ${image.size}`,
+      );
+      const bufferData = Buffer.from(image.buffer.data);
+
+      fs.writeFileSync(filePath, bufferData);
+
+      this.logger.log(`File saved locally at: ${filePath}`);
+
+      const uploadedImageUrl = await this.dropboxService.uploadImage(
+        filePath,
+        destinationPath,
+      );
+
+      fs.unlinkSync(filePath);
+      this.logger.log(`Local file deleted: ${filePath}`);
+
+      const post: any = await this.postModel.findOne({
+        where: {
+          postId,
+        },
+      });
+
+      if (post) {
+        post.image = uploadedImageUrl;
+        const result = await post.save();
+        if (result)
+          this.logger.log(`Image uploaded to Dropbox: ${uploadedImageUrl}`);
+      }
     } catch (error) {
-      this.logger.log(`Image upload failed`);
+      this.logger.error(
+        `Failed to upload image to Dropbox: ${error.message}`,
+        error.stack,
+      );
     }
   }
+
   @Process('uploadUserImage')
   async handleProfileUpload(job: Job) {
     const { profile, userId } = job.data;
 
     try {
-        let imageUrl = null
-        const uploadedImage = await this.cloudinaryService.uploadImage(profile);
-        if (!uploadedImage) {
-            this.logger.log(`Failed to upload image`);
-        }
-        imageUrl = uploadedImage.secure_url;
-        const user = await this.userModel.findOne({
-            where: {
-                userId
-            }
-        })
-        if (user !== null) {
-            user.profile = imageUrl
-           const result = await user.save()
-           if (result) this.logger.log(`Picture uploaded to cloudinary`);
-        }
+      if (!profile || !profile.originalname) {
+        throw new Error('profile data is undefined or invalid');
+      }
+
+      const sanitizedFileName = profile.originalname.replace(
+        /[^a-zA-Z0-9.\-_]/g,
+        '',
+      );
+      const destinationPath = `/${Date.now()}_${sanitizedFileName}`;
+      const filePath = path.join(this.uploadsDir, sanitizedFileName);
+
+
+      this.logger.log(
+        `Received file upload: ${profile.originalname}, size: ${profile.size}`,
+      );
+      const bufferData = Buffer.from(profile.buffer.data);
+
+      fs.writeFileSync(filePath, bufferData);
+
+      this.logger.log(`File saved locally at: ${filePath}`);
+
+      const uploadedImageUrl = await this.dropboxService.uploadImage(
+        filePath,
+        destinationPath,
+      );
+
+      fs.unlinkSync(filePath);
+      this.logger.log(`Local file deleted: ${filePath}`);
+      const user = await this.userModel.findOne({
+        where: {
+          userId,
+        },
+      });
+      if (user !== null) {
+        user.profile = uploadedImageUrl;
+
+        const result = await user.save();
+        if (result) this.logger.log(`Picture uploaded to dropbox`);
+      }
     } catch (error) {
       this.logger.log(`image upload failed`, error);
     }

@@ -12,18 +12,20 @@ export class CloudinaryService {
   }
 
   async uploadImage(file: Express.Multer.File): Promise<any> {
-    const buffer = Buffer.isBuffer(file.buffer) 
-    ? file.buffer 
-    : Buffer.from((file.buffer as any).data);
+    const buffer = Buffer.isBuffer(file.buffer)
+      ? file.buffer
+      : Buffer.from((file.buffer as any).data);
 
     return new Promise((resolve, reject) => {
-      const uploadStream = cloudinary.uploader.upload_stream((error, result) => {
-        if (error) {
-          return reject(error);
-        }
-        resolve(result);
-      });
-      uploadStream.end(buffer)
+      const uploadStream = cloudinary.uploader.upload_stream(
+        (error, result) => {
+          if (error) {
+            return reject(error);
+          }
+          resolve(result);
+        },
+      );
+      uploadStream.end(buffer);
     });
   }
 }

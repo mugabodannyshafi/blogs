@@ -219,7 +219,7 @@ export class StorageService {
           mode: { '.tag': 'overwrite' },
         },
       });
-
+      8;
       this.logger.log(`Upload complete: ${destinationPath}`);
     } catch (error) {
       this.logger.error(

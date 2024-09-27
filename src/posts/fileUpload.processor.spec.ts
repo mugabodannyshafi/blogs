@@ -1,23 +1,27 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { FileUploadProcessor } from './fileUpload.proccessor';
-import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
+import { DropboxService } from 'src/dropbox/dropbox.service';
 import { getModelToken } from '@nestjs/sequelize';
-import { Job } from 'bull';
 import { Post } from 'src/database/models/post.model';
 import { User } from 'src/database/models/user.model';
+import * as fs from 'fs';
+import { Logger } from '@nestjs/common';
+
+jest.mock('fs');
 
 describe('FileUploadProcessor', () => {
   let processor: FileUploadProcessor;
-  let cloudinaryService: CloudinaryService;
+  let dropboxService: DropboxService;
   let postModel: typeof Post;
   let userModel: typeof User;
+  let errorSpy: jest.SpyInstance;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         FileUploadProcessor,
         {
-          provide: CloudinaryService,
+          provide: DropboxService,
           useValue: {
             uploadImage: jest.fn(),
           },
@@ -26,85 +30,116 @@ describe('FileUploadProcessor', () => {
           provide: getModelToken(Post),
           useValue: {
             findOne: jest.fn(),
-            save: jest.fn(),
           },
         },
         {
           provide: getModelToken(User),
           useValue: {
             findOne: jest.fn(),
-            save: jest.fn(),
           },
         },
+        Logger,
       ],
     }).compile();
 
     processor = module.get<FileUploadProcessor>(FileUploadProcessor);
-    cloudinaryService = module.get<CloudinaryService>(CloudinaryService);
+    dropboxService = module.get<DropboxService>(DropboxService);
     postModel = module.get<typeof Post>(getModelToken(Post));
     userModel = module.get<typeof User>(getModelToken(User));
+
+    // Spying on the error logger
+    errorSpy = jest.spyOn(processor['logger'], 'error');
+    jest.spyOn(fs, 'writeFileSync').mockImplementation(() => {});
+    jest.spyOn(fs, 'unlinkSync').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   describe('handleImageUpload', () => {
-    it('should upload an image and update post', async () => {
-      const mockJob = { data: { image: 'test-image', postId: 1 } } as Job;
-      const mockUploadedImage = { secure_url: 'http://image.url/test' };
-      const mockPost = { postId: 1, save: jest.fn().mockResolvedValue(true), image: null };
+    it('should upload image and update post model', async () => {
+      const mockJob = {
+        data: {
+          image: {
+            originalname: 'test-image.jpg',
+            buffer: { data: Buffer.from('some image data') },
+          },
+          postId: 1,
+        },
+      };
 
-      (cloudinaryService.uploadImage as jest.Mock).mockResolvedValue(mockUploadedImage);
+      const mockPost = {
+        postId: 'post123',
+        image: null,
+        save: jest.fn().mockResolvedValue(true),
+      };
 
-      (postModel.findOne as jest.Mock).mockResolvedValue(mockPost);
+      jest.spyOn(postModel, 'findOne').mockResolvedValue(mockPost as any);
+      (dropboxService.uploadImage as jest.Mock).mockResolvedValue(
+        'dropbox-url',
+      );
 
-      await processor.handleImageUpload(mockJob);
+      await processor.handleImageUpload(mockJob as any);
 
-      expect(cloudinaryService.uploadImage).toHaveBeenCalledWith('test-image');
-      expect(postModel.findOne).toHaveBeenCalledWith({ where: { postId: 1 } });
-      expect(mockPost.image).toBe('http://image.url/test');
+      expect(fs.writeFileSync).toHaveBeenCalled();
+      expect(dropboxService.uploadImage).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(String),
+      );
       expect(mockPost.save).toHaveBeenCalled();
+      expect(fs.unlinkSync).toHaveBeenCalled();
     });
 
+    it('should log an error when image data is invalid', async () => {
+      const mockJob = {
+        data: {
+          image: null,
+          postId: 1,
+        },
+      };
 
-    it('should log a message if post is not found', async () => {
-      const mockJob = { data: { image: 'test-image', postId: 1 } } as Job;
-      const mockUploadedImage = { secure_url: 'http://image.url/test' };
+      await processor.handleImageUpload(mockJob as any);
 
-      (cloudinaryService.uploadImage as jest.Mock).mockResolvedValue(mockUploadedImage);
-      (postModel.findOne as jest.Mock).mockResolvedValue(null);
-
-      await processor.handleImageUpload(mockJob);
-
-      expect(postModel.findOne).toHaveBeenCalledWith({ where: { postId: 1 } });
+      expect(errorSpy).toHaveBeenCalledWith(
+        'Failed to upload image to Dropbox: Image data is undefined or invalid',
+        expect.anything(),
+      );
     });
   });
 
   describe('handleProfileUpload', () => {
-    it('should upload a profile image and update user', async () => {
-      const mockJob = { data: { profile: 'test-profile', userId: 1 } } as Job;
-      const mockUploadedImage = { secure_url: 'http://image.url/profile' };
-      const mockUser = { userId: 1, save: jest.fn().mockResolvedValue(true), profile: null };
+    it('should upload profile image and update user model', async () => {
+      const mockJob = {
+        data: {
+          profile: {
+            originalname: 'test-profile.jpg',
+            buffer: { data: Buffer.from('some image data') },
+          },
+          userId: 1,
+        },
+      };
 
-      (cloudinaryService.uploadImage as jest.Mock).mockResolvedValue(mockUploadedImage);
-      (userModel.findOne as jest.Mock).mockResolvedValue(mockUser);
+      const mockUser = {
+        userId: 'user123',
+        profile: null,
+        save: jest.fn().mockResolvedValue(true),
+      };
 
-      await processor.handleProfileUpload(mockJob);
+      jest.spyOn(userModel, 'findOne').mockResolvedValue(mockUser as any);
+      (dropboxService.uploadImage as jest.Mock).mockResolvedValue(
+        'dropbox-url',
+      );
 
-      expect(cloudinaryService.uploadImage).toHaveBeenCalledWith('test-profile');
-      expect(userModel.findOne).toHaveBeenCalledWith({ where: { userId: 1 } });
-      expect(mockUser.profile).toBe('http://image.url/profile');
+      await processor.handleProfileUpload(mockJob as any);
+
+      expect(fs.writeFileSync).toHaveBeenCalled();
+      expect(dropboxService.uploadImage).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(String),
+      );
       expect(mockUser.save).toHaveBeenCalled();
-    });
-
-
-    it('should log a message if user is not found', async () => {
-      const mockJob = { data: { profile: 'test-profile', userId: 1 } } as Job;
-      const mockUploadedImage = { secure_url: 'http://image.url/profile' };
-
-      (cloudinaryService.uploadImage as jest.Mock).mockResolvedValue(mockUploadedImage);
-      (userModel.findOne as jest.Mock).mockResolvedValue(null);
-
-      await processor.handleProfileUpload(mockJob);
-
-      expect(userModel.findOne).toHaveBeenCalledWith({ where: { userId: 1 } });
+      expect(fs.unlinkSync).toHaveBeenCalled();
     });
   });
 });
